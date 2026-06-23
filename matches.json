@@ -1,0 +1,407 @@
+[
+    {
+        "date": "Fri, Jun 12",
+        "group": "A",
+        "team_a": "Mexico",
+        "team_b": "South Africa",
+        "score_a": 2,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 12",
+        "group": "A",
+        "team_a": "South Korea",
+        "team_b": "Czechia",
+        "score_a": 2,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 13",
+        "group": "B",
+        "team_a": "Canada",
+        "team_b": "Bosnia and Herzegovina",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 13",
+        "group": "D",
+        "team_a": "United States",
+        "team_b": "Paraguay",
+        "score_a": 4,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 14",
+        "group": "B",
+        "team_a": "Qatar",
+        "team_b": "Switzerland",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 14",
+        "group": "C",
+        "team_a": "Brazil",
+        "team_b": "Morocco",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 14",
+        "group": "C",
+        "team_a": "Haiti",
+        "team_b": "Scotland",
+        "score_a": 0,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 14",
+        "group": "D",
+        "team_a": "Australia",
+        "team_b": "Turkey",
+        "score_a": 2,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Mon, Jun 15",
+        "group": "E",
+        "team_a": "Germany",
+        "team_b": "Curacao",
+        "score_a": 7,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Mon, Jun 15",
+        "group": "F",
+        "team_a": "Netherlands",
+        "team_b": "Japan",
+        "score_a": 2,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Mon, Jun 15",
+        "group": "E",
+        "team_a": "Ivory Coast",
+        "team_b": "Ecuador",
+        "score_a": 1,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Mon, Jun 15",
+        "group": "F",
+        "team_a": "Sweden",
+        "team_b": "Tunisia",
+        "score_a": 5,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Tue, Jun 16",
+        "group": "H",
+        "team_a": "Spain",
+        "team_b": "Cape Verde",
+        "score_a": 0,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Tue, Jun 16",
+        "group": "G",
+        "team_a": "Belgium",
+        "team_b": "Egypt",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Tue, Jun 16",
+        "group": "H",
+        "team_a": "Saudi Arabia",
+        "team_b": "Uruguay",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Tue, Jun 16",
+        "group": "G",
+        "team_a": "Iran",
+        "team_b": "New Zealand",
+        "score_a": 2,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 17",
+        "group": "I",
+        "team_a": "France",
+        "team_b": "Senegal",
+        "score_a": 3,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 17",
+        "group": "I",
+        "team_a": "Iraq",
+        "team_b": "Norway",
+        "score_a": 1,
+        "score_b": 4,
+        "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 17",
+        "group": "J",
+        "team_a": "Argentina",
+        "team_b": "Algeria",
+        "score_a": 3,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 17",
+        "group": "J",
+        "team_a": "Austria",
+        "team_b": "Jordan",
+        "score_a": 3,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 18",
+        "group": "K",
+        "team_a": "Portugal",
+        "team_b": "DR Congo",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 18",
+        "group": "L",
+        "team_a": "England",
+        "team_b": "Croatia",
+        "score_a": 4,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 18",
+        "group": "L",
+        "team_a": "Ghana",
+        "team_b": "Panama",
+        "score_a": 1,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 18",
+        "group": "K",
+        "team_a": "Uzbekistan",
+        "team_b": "Colombia",
+        "score_a": 1,
+        "score_b": 3,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 19",
+        "group": "A",
+        "team_a": "Czechia",
+        "team_b": "South Africa",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 19",
+        "group": "B",
+        "team_a": "Switzerland",
+        "team_b": "Bosnia and Herzegovina",
+        "score_a": 4,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 19",
+        "group": "B",
+        "team_a": "Canada",
+        "team_b": "Qatar",
+        "score_a": 6,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 19",
+        "group": "A",
+        "team_a": "Mexico",
+        "team_b": "South Korea",
+        "score_a": 1,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 20",
+        "group": "D",
+        "team_a": "United States",
+        "team_b": "Australia",
+        "score_a": 2,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 20",
+        "group": "C",
+        "team_a": "Scotland",
+        "team_b": "Morocco",
+        "score_a": 0,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 20",
+        "group": "C",
+        "team_a": "Brazil",
+        "team_b": "Haiti",
+        "score_a": 3,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 20",
+        "group": "D",
+        "team_a": "Turkey",
+        "team_b": "Paraguay",
+        "score_a": 0,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 21",
+        "group": "F",
+        "team_a": "Netherlands",
+        "team_b": "Sweden",
+        "score_a": 5,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 21",
+        "group": "E",
+        "team_a": "Germany",
+        "team_b": "Ivory Coast",
+        "score_a": 2,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 21",
+        "group": "E",
+        "team_a": "Ecuador",
+        "team_b": "Curacao",
+        "score_a": 0,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 21",
+        "group": "F",
+        "team_a": "Tunisia",
+        "team_b": "Japan",
+        "score_a": 0,
+        "score_b": 4,
+        "status": "FT"
+    },
+    {
+        "date": "Mon, Jun 22",
+        "group": "H",
+        "team_a": "Spain",
+        "team_b": "Saudi Arabia",
+        "score_a": 4,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Mon, Jun 22",
+        "group": "G",
+        "team_a": "Belgium",
+        "team_b": "Iran",
+        "score_a": 0,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Mon, Jun 22",
+        "group": "H",
+        "team_a": "Uruguay",
+        "team_b": "Cape Verde",
+        "score_a": 2,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Mon, Jun 22",
+        "group": "G",
+        "team_a": "New Zealand",
+        "team_b": "Egypt",
+        "score_a": 1,
+        "score_b": 3,
+        "status": "FT"
+    },
+    {
+        "date": "Yesterday",
+        "group": "J",
+        "team_a": "Argentina",
+        "team_b": "Austria",
+        "score_a": 2,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Yesterday",
+        "group": "I",
+        "team_a": "France",
+        "team_b": "Iraq",
+        "score_a": 3,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Yesterday",
+        "group": "I",
+        "team_a": "Norway",
+        "team_b": "Senegal",
+        "score_a": 3,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Yesterday",
+        "group": "J",
+        "team_a": "Jordan",
+        "team_b": "Algeria",
+        "score_a": 1,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Today",
+        "group": "K",
+        "team_a": "Portugal",
+        "team_b": "Uzbekistan",
+        "score_a": 5,
+        "score_b": 0,
+        "status": "FT"
+    }
+]
