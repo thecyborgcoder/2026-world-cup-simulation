@@ -1,4 +1,5 @@
 import random
+import functools
 from probabilities import generate_random_score
 
 def get_location_for_group(group_name):
@@ -144,6 +145,19 @@ def get_standings(group_name, group_teams, group_matches, ratings):
     sorted_teams = sort_tied_teams(group_teams)
     return sorted_teams, stats
 
+@functools.lru_cache(maxsize=None)
+def solve_assignment_cached(w8_groups, t3_groups):
+    def _solve(current):
+        if len(current) == 8: return current
+        i = len(current)
+        for j in range(8):
+            if j not in current:
+                if t3_groups[j] != w8_groups[i]: # Group constraint
+                    res = _solve(current + (j,))
+                    if res: return res
+        return None
+    return _solve(tuple())
+
 def build_knockout_bracket(groups_standings, group_stats, ratings):
     winners = []
     runners_up = []
@@ -161,28 +175,17 @@ def build_knockout_bracket(groups_standings, group_stats, ratings):
     r32_matches = []
     
     # 8 group winners face 8 best thirds
-    w8_groups = [g for g, t in winners[:8]]
+    w8_groups = tuple(g for g, t in winners[:8])
     w8_teams = [t for g, t in winners[:8]]
-    t3_groups = [x['group'] for x in best_thirds]
+    t3_groups = tuple(x['group'] for x in best_thirds)
     t3_teams = [x['team'] for x in best_thirds]
     
-    # Dynamic matrix to avoid teams from same group playing each other
-    def solve_assignment(w_g, t_g, current):
-        if len(current) == 8: return current
-        i = len(current)
-        for j in range(8):
-            if j not in [idx for idx, _ in current]:
-                if t_g[j] != w_g[i]: # Group constraint
-                    res = solve_assignment(w_g, t_g, current + [(j, t3_teams[j])])
-                    if res: return res
-        return None
-        
-    assignment = solve_assignment(w8_groups, t3_groups, [])
+    assignment = solve_assignment_cached(w8_groups, t3_groups)
     if not assignment:
-        assignment = [(i, t3_teams[i]) for i in range(8)] # Fallback if no valid matrix found
+        assignment = tuple(range(8)) # Fallback if no valid matrix found
         
     for i in range(8):
-        r32_matches.append((w8_teams[i], assignment[i][1]))
+        r32_matches.append((w8_teams[i], t3_teams[assignment[i]]))
         
     # The remaining 4 winners face 4 runners-up
     r32_matches.append((winners[8][1], runners_up[0][1]))
@@ -237,5 +240,10 @@ def run_one_simulation(teams, matches_played, ratings):
         'qf': qf_teams,
         'sf': sf_teams,
         'final': final_teams,
-        'winner': winner[0]
+        'winner': winner[0],
+        'r32_bracket': r32_bracket,
+        'r16_bracket': r16_bracket,
+        'qf_bracket': qf_bracket,
+        'sf_bracket': sf_bracket,
+        'final_bracket': final_bracket
     }

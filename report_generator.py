@@ -2,13 +2,8 @@ import csv
 import json
 import os
 
-def generate_reports(results_tally, num_sims, output_dir):
+def generate_reports(results_tally, matchups_tally, num_sims, output_dir):
     os.makedirs(output_dir, exist_ok=True)
-    
-    # Sort teams by win probability BEFORE turning them into percentages?
-    # Wait, the existing code turns them into percentages here:
-    # Actually I will just keep the raw counts and format them, but the CSV generation also relies on percentages.
-    # Let's just create a formatted string from the percentage.
     
     # Calculate percentages
     for team, stats in results_tally.items():
@@ -46,8 +41,47 @@ def generate_reports(results_tally, num_sims, output_dir):
             win = format_prob(stats.get('winner', 0))
             f.write(f"| {team} | {r32} | {r16} | {qf} | {sf} | {final} | {win} |\n")
             
+    # Generate Bracket Matchups MD
+    matchups_md_path = os.path.join(output_dir, 'bracket_matchups.md')
+    with open(matchups_md_path, 'w', encoding='utf-8') as f:
+        f.write("# 2026 World Cup Most Likely Matchups\n\n")
+        f.write(f"**Based on {num_sims} simulations**\n\n")
+        
+        stages = [
+            ('Final', 'final'),
+            ('Semi-Finals', 'sf'),
+            ('Quarter-Finals', 'qf'),
+            ('Round of 16', 'r16'),
+            ('Round of 32', 'r32')
+        ]
+        
+        for stage_name, stage_key in stages:
+            f.write(f"## {stage_name}\n\n")
+            f.write("| Matchup | Probability | Team A Win % | Team B Win % |\n")
+            f.write("|---|---|---|---|\n")
+            
+            # Sort matchups by frequency
+            stage_matchups = matchups_tally[stage_key]
+            sorted_matchups = sorted(stage_matchups.items(), key=lambda x: x[1]['count'], reverse=True)
+            
+            # Print top 15
+            for pair, data in sorted_matchups[:15]:
+                ta, tb = pair
+                count = data['count']
+                prob = (count / num_sims) * 100
+                
+                wa_count = data['wins'].get(ta, 0)
+                wb_count = data['wins'].get(tb, 0)
+                
+                wa_prob = (wa_count / count) * 100 if count > 0 else 0
+                wb_prob = (wb_count / count) * 100 if count > 0 else 0
+                
+                f.write(f"| {ta} vs {tb} | {prob:.1f}% | {ta} ({wa_prob:.1f}%) | {tb} ({wb_prob:.1f}%) |\n")
+            f.write("\n")
+            
     # Generate CSV
     csv_path = os.path.join(output_dir, 'simulation_results.csv')
+    
     with open(csv_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['Team', 'R32_%', 'R16_%', 'QF_%', 'SF_%', 'Final_%', 'Win_%'])

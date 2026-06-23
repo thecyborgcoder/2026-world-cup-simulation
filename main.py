@@ -39,6 +39,24 @@ def main():
     
     tally = defaultdict(lambda: {'r32': 0, 'r16': 0, 'qf': 0, 'sf': 0, 'final': 0, 'winner': 0})
     
+    # Matchup tracking: {stage: { (team_a, team_b): {'count': 0, 'wins': {team_a: 0, team_b: 0}} }}
+    matchups_tally = {
+        'r32': defaultdict(lambda: {'count': 0, 'wins': defaultdict(int)}),
+        'r16': defaultdict(lambda: {'count': 0, 'wins': defaultdict(int)}),
+        'qf': defaultdict(lambda: {'count': 0, 'wins': defaultdict(int)}),
+        'sf': defaultdict(lambda: {'count': 0, 'wins': defaultdict(int)}),
+        'final': defaultdict(lambda: {'count': 0, 'wins': defaultdict(int)})
+    }
+    
+    def process_matchups(bracket, winners, stage):
+        for i, match in enumerate(bracket):
+            # Sort to ensure (A, B) is same as (B, A)
+            pair = tuple(sorted(match))
+            winner = winners[i] if stage != 'final' else winners[0]
+            
+            matchups_tally[stage][pair]['count'] += 1
+            matchups_tally[stage][pair]['wins'][winner] += 1
+    
     # Chunk size optimizations for IPC
     chunk_size = max(1, num_sims // (cpu_cores * 8))
     
@@ -52,10 +70,17 @@ def main():
             for team in result['final']: tally[team]['final'] += 1
             tally[result['winner']]['winner'] += 1
             
+            # Aggregate Matchups
+            process_matchups(result['r32_bracket'], result['r16'], 'r32')
+            process_matchups(result['r16_bracket'], result['qf'], 'r16')
+            process_matchups(result['qf_bracket'], result['sf'], 'qf')
+            process_matchups(result['sf_bracket'], result['final'], 'sf')
+            process_matchups(result['final_bracket'], [result['winner']], 'final')
+            
             if (i + 1) % max(1, num_sims // 10) == 0:
                 print(f"Simulated {i + 1}/{num_sims}")
                 
-    generate_reports(tally, num_sims, config.get('output_dir', './outputs'))
+    generate_reports(tally, matchups_tally, num_sims, config.get('output_dir', './outputs'))
 
 if __name__ == '__main__':
     # Required for Windows multiprocessing
