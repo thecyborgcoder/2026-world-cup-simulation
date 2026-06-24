@@ -4,12 +4,10 @@ import random
 def get_expected_goals(elo_a, elo_b):
     """Calculate Expected Goals (xG) based on Elo difference."""
     diff = elo_a - elo_b
-    # Map Elo difference to xG. 
-    # Average team scores ~1.3 goals per game.
-    # An Elo diff of 400 is approximately a 10x difference in strength,
-    # so we scale the xG up/down logarithmically.
-    xg_a = 1.3 * (10.0 ** (diff / 800.0))
-    xg_b = 1.3 * (10.0 ** (-diff / 800.0))
+    # An Elo diff of 400 will double the favorite's xG and halve the underdog's,
+    # which produces much more realistic total match goals without extreme explosions.
+    xg_a = 1.3 * (2.0 ** (diff / 400.0))
+    xg_b = 1.3 * (2.0 ** (-diff / 400.0))
     
     # Cap xG to avoid extreme edge cases breaking the math
     xg_a = min(max(xg_a, 0.1), 8.0)
@@ -31,7 +29,9 @@ def generate_random_score(elo_a, elo_b, scale=1.0):
     xg_b *= scale
     
     # Apply Dixon-Coles adjustment only for full matches (scale == 1.0)
-    rho = 0.15 if scale == 1.0 else 0.0
+    # A negative rho increases the probability of low-scoring draws.
+    # rho = -0.10 yields ~28.9% draws for evenly matched teams (safely under 30%).
+    rho = -0.10 if scale == 1.0 else 0.0
     
     max_goals = 10
     probs = {}
@@ -41,7 +41,7 @@ def generate_random_score(elo_a, elo_b, scale=1.0):
             prob = poisson_prob(xg_a, i) * poisson_prob(xg_b, j)
             
             # Dixon-Coles adjustment for low-scoring draws
-            if rho > 0:
+            if rho != 0:
                 if i == 0 and j == 0:
                     prob *= max(0, 1 - xg_a * xg_b * rho)
                 elif i == 0 and j == 1:
