@@ -90,7 +90,7 @@ def main():
                     log(f"   Win Probs: {ta} {pw*100:.1f}% | Draw {pd*100:.1f}% | {tb} {pl*100:.1f}%")
                     log(f"   Result: **{ta} {ga} - {gb} {tb}**\n")
                     
-                    all_simulated_matches.append({'ta': ta, 'tb': tb, 'ga': ga, 'gb': gb, 'is_knockout': False})
+                    all_simulated_matches.append({'ta': ta, 'tb': tb, 'ga': ga, 'gb': gb, 'is_knockout': False, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b})
                     # Add to group_m so get_standings can calculate everything correctly
                     group_m.append({'team_a': ta, 'team_b': tb, 'score_a': ga, 'score_b': gb})
                     
@@ -132,7 +132,7 @@ def main():
             log(f"   Advancing: **{winner}** (via {method})\n")
             
             next_round.append(winner)
-            all_simulated_matches.append({'ta': ta, 'tb': tb, 'winner': winner, 'method': method, 'is_knockout': True})
+            all_simulated_matches.append({'ta': ta, 'tb': tb, 'winner': winner, 'method': method, 'is_knockout': True, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b})
             
         return next_round
 
@@ -225,8 +225,95 @@ def main():
     log("\n### Knockout Stage Breakdown")
     log(f"- **Total Knockout Matches**: {len(ko_matches)}")
     log(f"- **Won in Regular Time (90m)**: {rt_wins} ({rt_wins/len(ko_matches)*100:.1f}%)")
-    log(f"- **Won in Extra Time (120m)**: {et_wins} ({et_wins/len(ko_matches)*100:.1f}%)")
-    log(f"- **Decided by Penalty Shootout**: {pen_wins} ({pen_wins/len(ko_matches)*100:.1f}%)")
+    log(f"- **Won in Extra Time (120m)**: {et_wins} ({et_wins/max(1,len(ko_matches))*100:.1f}%)")
+    log(f"- **Decided by Penalty Shootout**: {pen_wins} ({pen_wins/max(1,len(ko_matches))*100:.1f}%)")
+    
+    # Elo Difference Breakdown
+    elo_diff_stats = {
+        '0-50': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+        '51-150': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+        '151-300': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+        '300+': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0}
+    }
+    
+    elo_tier_stats = {
+        '1900+': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+        '1800-1899': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+        '1700-1799': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+        '1600-1699': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+        '<1600': {'w': 0, 'd': 0, 'l': 0, 'games': 0}
+    }
+    
+    def get_tier(elo):
+        if elo >= 1900: return '1900+'
+        if elo >= 1800: return '1800-1899'
+        if elo >= 1700: return '1700-1799'
+        if elo >= 1600: return '1600-1699'
+        return '<1600'
+        
+    def get_diff_bucket(diff):
+        if diff <= 50: return '0-50'
+        if diff <= 150: return '51-150'
+        if diff <= 300: return '151-300'
+        return '300+'
+
+    for m in all_simulated_matches:
+        ea, eb = m['elo_a'], m['elo_b']
+        diff = abs(ea - eb)
+        bucket = get_diff_bucket(diff)
+        
+        winner = None
+        if not m['is_knockout']:
+            if m['ga'] > m['gb']: winner = 'a'
+            elif m['ga'] < m['gb']: winner = 'b'
+            else: winner = 'draw'
+        else:
+            winner = 'a' if m['winner'] == m['ta'] else 'b'
+            
+        elo_diff_stats[bucket]['games'] += 1
+        is_a_favorite = ea >= eb
+        
+        if winner == 'draw':
+            elo_diff_stats[bucket]['draws'] += 1
+        elif winner == 'a':
+            if is_a_favorite: elo_diff_stats[bucket]['favorite_wins'] += 1
+            else: elo_diff_stats[bucket]['underdog_wins'] += 1
+        else:
+            if not is_a_favorite: elo_diff_stats[bucket]['favorite_wins'] += 1
+            else: elo_diff_stats[bucket]['underdog_wins'] += 1
+            
+        t_a = get_tier(ea)
+        t_b = get_tier(eb)
+        elo_tier_stats[t_a]['games'] += 1
+        elo_tier_stats[t_b]['games'] += 1
+        
+        if winner == 'draw':
+            elo_tier_stats[t_a]['d'] += 1
+            elo_tier_stats[t_b]['d'] += 1
+        elif winner == 'a':
+            elo_tier_stats[t_a]['w'] += 1
+            elo_tier_stats[t_b]['l'] += 1
+        else:
+            elo_tier_stats[t_a]['l'] += 1
+            elo_tier_stats[t_b]['w'] += 1
+            
+    log("\n### Match Outcomes by Elo Difference")
+    log(f"| {'Elo Diff':<10} | {'Games':<5} | {'Fav Win%':<9} | {'Dog Win%':<9} | {'Draw%':<6} |")
+    log(f"|{'-'*12}|{'-'*7}|{'-'*11}|{'-'*11}|{'-'*8}|")
+    for b in ['0-50', '51-150', '151-300', '300+']:
+        st = elo_diff_stats[b]
+        if st['games'] > 0:
+            g = st['games']
+            log(f"| {b:<10} | {g:<5} | {st['favorite_wins']/g*100:<9.1f} | {st['underdog_wins']/g*100:<9.1f} | {st['draws']/g*100:<6.1f} |")
+        
+    log("\n### Team Performance by Elo Tier")
+    log(f"| {'Elo Tier':<10} | {'Games':<5} | {'Win%':<6} | {'Draw%':<6} | {'Loss%':<6} |")
+    log(f"|{'-'*12}|{'-'*7}|{'-'*8}|{'-'*8}|{'-'*8}|")
+    for t in ['1900+', '1800-1899', '1700-1799', '1600-1699', '<1600']:
+        st = elo_tier_stats[t]
+        if st['games'] > 0:
+            g = st['games']
+            log(f"| {t:<10} | {g:<5} | {st['w']/g*100:<6.1f} | {st['d']/g*100:<6.1f} | {st['l']/g*100:<6.1f} |")
     
     # Write to file
     os.makedirs('outputs', exist_ok=True)
