@@ -114,11 +114,11 @@ def get_standings(group_name, group_teams, group_matches, ratings):
             
         criteria_funcs = [
             lambda ts: {t: stats[t]['points'] for t in ts},     # 1. Total Points
-            get_h2h_pts,                                        # 2. H2H Points
-            get_h2h_gd,                                         # 3. H2H GD
-            get_h2h_gs,                                         # 4. H2H GS
-            lambda ts: {t: stats[t]['gd'] for t in ts},         # 5. Overall GD
-            lambda ts: {t: stats[t]['gs'] for t in ts},         # 6. Overall GS
+            lambda ts: {t: stats[t]['gd'] for t in ts},         # 2. Overall GD
+            lambda ts: {t: stats[t]['gs'] for t in ts},         # 3. Overall GS
+            get_h2h_pts,                                        # 4. H2H Points
+            get_h2h_gd,                                         # 5. H2H GD
+            get_h2h_gs,                                         # 6. H2H GS
             lambda ts: {t: ratings.get(t, 1500) for t in ts},   # 7. FIFA Ranking (Elo)
             lambda ts: {t: t for t in ts}                       # 8. Name (Fallback)
         ]
