@@ -48,6 +48,25 @@ def main():
         'final': defaultdict(lambda: {'count': 0, 'wins': defaultdict(int)})
     }
     
+    global_run_stats = {
+        'group_games': 0, 'group_goals': 0, 'group_draws': 0, 'team_a_wins': 0, 'team_b_wins': 0,
+        'winner_goals': 0, 'loser_goals': 0,
+        'ko_games': 0, 'rt_wins': 0, 'et_wins': 0, 'pen_wins': 0,
+        'elo_diff': {
+            '0-50': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+            '51-150': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+            '151-300': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+            '300+': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0}
+        },
+        'elo_tier': {
+            '1900+': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+            '1800-1899': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+            '1700-1799': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+            '1600-1699': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+            '<1600': {'w': 0, 'd': 0, 'l': 0, 'games': 0}
+        }
+    }
+    
     def process_matchups(bracket, winners, stage):
         for i, match in enumerate(bracket):
             # Sort to ensure (A, B) is same as (B, A)
@@ -77,10 +96,24 @@ def main():
             process_matchups(result['sf_bracket'], result['final'], 'sf')
             process_matchups(result['final_bracket'], [result['winner']], 'final')
             
+            # Aggregate run stats
+            rs = result['run_stats']
+            for k in ['group_games', 'group_goals', 'group_draws', 'team_a_wins', 'team_b_wins', 
+                      'winner_goals', 'loser_goals', 'ko_games', 'rt_wins', 'et_wins', 'pen_wins']:
+                global_run_stats[k] += rs[k]
+                
+            for b in rs['elo_diff']:
+                for k in rs['elo_diff'][b]:
+                    global_run_stats['elo_diff'][b][k] += rs['elo_diff'][b][k]
+                    
+            for t in rs['elo_tier']:
+                for k in rs['elo_tier'][t]:
+                    global_run_stats['elo_tier'][t][k] += rs['elo_tier'][t][k]
+            
             if (i + 1) % max(1, num_sims // 10) == 0:
                 print(f"Simulated {i + 1}/{num_sims}")
                 
-    generate_reports(tally, matchups_tally, num_sims, config.get('output_dir', './outputs'))
+    generate_reports(tally, matchups_tally, global_run_stats, num_sims, config.get('output_dir', './outputs'))
 
 if __name__ == '__main__':
     # Required for Windows multiprocessing

@@ -55,6 +55,11 @@ def get_standings(group_name, group_teams, group_matches, ratings):
             stats[tb]['gs'] += sb
             stats[ta]['gd'] += (sa - sb)
             stats[tb]['gd'] += (sb - sa)
+            elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
+            hosts = ['United States', 'Canada', 'Mexico']
+            adj_elo_a = elo_a + 100 if ta in hosts else elo_a
+            adj_elo_b = elo_b + 100 if tb in hosts else elo_b
+
             if sa > sb: stats[ta]['points'] += 3
             elif sa == sb:
                 stats[ta]['points'] += 1
@@ -63,7 +68,7 @@ def get_standings(group_name, group_teams, group_matches, ratings):
             stats[ta]['matches'] += 1
             stats[tb]['matches'] += 1
             played_pairs.add(tuple(sorted([ta, tb])))
-            match_results.append({'ta': ta, 'tb': tb, 'sa': sa, 'sb': sb})
+            match_results.append({'ta': ta, 'tb': tb, 'sa': sa, 'sb': sb, 'is_knockout': False, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b})
             
     # Simulate remaining matches
     location = get_location_for_group(group_name)
@@ -71,7 +76,12 @@ def get_standings(group_name, group_teams, group_matches, ratings):
         for j in range(i + 1, len(group_teams)):
             ta, tb = group_teams[i], group_teams[j]
             if tuple(sorted([ta, tb])) not in played_pairs:
-                ga, gb = simulate_match(ta, tb, ratings.get(ta, 1500), ratings.get(tb, 1500), location=location)
+                elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
+                hosts = ['United States', 'Canada', 'Mexico']
+                adj_elo_a = elo_a + 100 if ta in hosts else elo_a
+                adj_elo_b = elo_b + 100 if tb in hosts else elo_b
+                
+                ga, gb = simulate_match(ta, tb, elo_a, elo_b, location=location)
                 stats[ta]['gd'] += (ga - gb)
                 stats[tb]['gd'] += (gb - ga)
                 stats[ta]['gs'] += ga
@@ -83,7 +93,7 @@ def get_standings(group_name, group_teams, group_matches, ratings):
                     stats[tb]['points'] += 1
                 else: stats[tb]['points'] += 3
                 
-                match_results.append({'ta': ta, 'tb': tb, 'sa': ga, 'sb': gb})
+                match_results.append({'ta': ta, 'tb': tb, 'sa': ga, 'sb': gb, 'is_knockout': False, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b})
                 
     # Multi-pass recursive tiebreaker function
     def sort_tied_teams(teams):
@@ -145,7 +155,7 @@ def get_standings(group_name, group_teams, group_matches, ratings):
         return teams
 
     sorted_teams = sort_tied_teams(group_teams)
-    return sorted_teams, stats
+    return sorted_teams, stats, match_results
 
 def assign_3rd_place(best_thirds):
     slots = [74, 77, 79, 80, 81, 82, 85, 87]
@@ -225,26 +235,36 @@ def build_knockout_bracket(groups_standings, group_stats, ratings):
 
 def simulate_knockout(bracket, ratings, start_match_num):
     next_round = []
+    match_data = []
+    hosts = ['United States', 'Canada', 'Mexico']
     for i, match in enumerate(bracket):
         ta, tb = match
         match_num = start_match_num + i
         loc = get_location_for_match(match_num)
-        winner, _ = simulate_match(ta, tb, ratings.get(ta, 1500), ratings.get(tb, 1500), location=loc, is_knockout=True)
+        elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
+        adj_elo_a = elo_a + 100 if ta in hosts else elo_a
+        adj_elo_b = elo_b + 100 if tb in hosts else elo_b
+        
+        winner, method = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=True)
         next_round.append(winner)
-    return next_round
+        match_data.append({'ta': ta, 'tb': tb, 'winner': winner, 'method': method, 'is_knockout': True, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b})
+    return next_round, match_data
 
 def run_one_simulation(teams, matches_played, ratings):
     groups_standings = {}
     group_stats = {}
+    all_matches = []
     
     for group_name, group_teams in teams.items():
         group_m = [m for m in matches_played if m['team_a'] in group_teams and m['team_b'] in group_teams]
-        standings, stats = get_standings(group_name, group_teams, group_m, ratings)
+        standings, stats, match_results = get_standings(group_name, group_teams, group_m, ratings)
         groups_standings[group_name] = standings
         group_stats[group_name] = stats
+        all_matches.extend(match_results)
         
     r32_bracket = build_knockout_bracket(groups_standings, group_stats, ratings)
-    r32_teams = simulate_knockout(r32_bracket, ratings, 73)
+    r32_teams, r32_data = simulate_knockout(r32_bracket, ratings, 73)
+    all_matches.extend(r32_data)
     
     # R16 Mapping
     w = {73 + i: winner for i, winner in enumerate(r32_teams)}
@@ -252,7 +272,8 @@ def run_one_simulation(teams, matches_played, ratings):
         (w[74], w[77]), (w[73], w[75]), (w[76], w[78]), (w[79], w[80]),
         (w[83], w[84]), (w[81], w[82]), (w[85], w[87]), (w[86], w[88])
     ]
-    r16_teams = simulate_knockout(r16_bracket, ratings, 89)
+    r16_teams, r16_data = simulate_knockout(r16_bracket, ratings, 89)
+    all_matches.extend(r16_data)
     
     # QF Mapping
     w16 = {89 + i: winner for i, winner in enumerate(r16_teams)}
@@ -260,19 +281,111 @@ def run_one_simulation(teams, matches_played, ratings):
         (w16[89], w16[90]), (w16[91], w16[92]), 
         (w16[93], w16[94]), (w16[95], w16[96])
     ]
-    qf_teams = simulate_knockout(qf_bracket, ratings, 97)
+    qf_teams, qf_data = simulate_knockout(qf_bracket, ratings, 97)
+    all_matches.extend(qf_data)
     
     # SF Mapping
     wqf = {97 + i: winner for i, winner in enumerate(qf_teams)}
     sf_bracket = [
         (wqf[97], wqf[98]), (wqf[99], wqf[100])
     ]
-    sf_teams = simulate_knockout(sf_bracket, ratings, 101)
+    sf_teams, sf_data = simulate_knockout(sf_bracket, ratings, 101)
+    all_matches.extend(sf_data)
     
     # Final
     wsf = {101 + i: winner for i, winner in enumerate(sf_teams)}
     final_bracket = [(wsf[101], wsf[102])]
-    final_teams = simulate_knockout(final_bracket, ratings, 104)
+    final_teams, final_data = simulate_knockout(final_bracket, ratings, 104)
+    all_matches.extend(final_data)
+    
+    def get_tier(elo):
+        if elo >= 1900: return '1900+'
+        if elo >= 1800: return '1800-1899'
+        if elo >= 1700: return '1700-1799'
+        if elo >= 1600: return '1600-1699'
+        return '<1600'
+        
+    def get_diff_bucket(diff):
+        if diff <= 50: return '0-50'
+        if diff <= 150: return '51-150'
+        if diff <= 300: return '151-300'
+        return '300+'
+
+    run_stats = {
+        'group_games': 0, 'group_goals': 0, 'group_draws': 0, 'team_a_wins': 0, 'team_b_wins': 0,
+        'winner_goals': 0, 'loser_goals': 0,
+        'ko_games': 0, 'rt_wins': 0, 'et_wins': 0, 'pen_wins': 0,
+        'elo_diff': {
+            '0-50': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+            '51-150': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+            '151-300': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
+            '300+': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0}
+        },
+        'elo_tier': {
+            '1900+': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+            '1800-1899': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+            '1700-1799': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+            '1600-1699': {'w': 0, 'd': 0, 'l': 0, 'games': 0},
+            '<1600': {'w': 0, 'd': 0, 'l': 0, 'games': 0}
+        }
+    }
+
+    for m in all_matches:
+        ea, eb = m['elo_a'], m['elo_b']
+        diff = abs(ea - eb)
+        bucket = get_diff_bucket(diff)
+        
+        winner = None
+        if not m['is_knockout']:
+            run_stats['group_games'] += 1
+            run_stats['group_goals'] += (m['sa'] + m['sb'])
+            if m['sa'] > m['sb']: 
+                winner = 'a'
+                run_stats['team_a_wins'] += 1
+                run_stats['winner_goals'] += m['sa']
+                run_stats['loser_goals'] += m['sb']
+            elif m['sa'] < m['sb']: 
+                winner = 'b'
+                run_stats['team_b_wins'] += 1
+                run_stats['winner_goals'] += m['sb']
+                run_stats['loser_goals'] += m['sa']
+            else: 
+                winner = 'draw'
+                run_stats['group_draws'] += 1
+        else:
+            run_stats['ko_games'] += 1
+            if m['method'] == 'RT': run_stats['rt_wins'] += 1
+            elif m['method'] == 'ET': run_stats['et_wins'] += 1
+            elif m['method'] == 'PEN': run_stats['pen_wins'] += 1
+            
+            winner = 'a' if m['winner'] == m['ta'] else 'b'
+            
+        run_stats['elo_diff'][bucket]['games'] += 1
+        is_a_favorite = ea >= eb
+        
+        if winner == 'draw':
+            run_stats['elo_diff'][bucket]['draws'] += 1
+        elif winner == 'a':
+            if is_a_favorite: run_stats['elo_diff'][bucket]['favorite_wins'] += 1
+            else: run_stats['elo_diff'][bucket]['underdog_wins'] += 1
+        else:
+            if not is_a_favorite: run_stats['elo_diff'][bucket]['favorite_wins'] += 1
+            else: run_stats['elo_diff'][bucket]['underdog_wins'] += 1
+            
+        t_a = get_tier(ea)
+        t_b = get_tier(eb)
+        run_stats['elo_tier'][t_a]['games'] += 1
+        run_stats['elo_tier'][t_b]['games'] += 1
+        
+        if winner == 'draw':
+            run_stats['elo_tier'][t_a]['d'] += 1
+            run_stats['elo_tier'][t_b]['d'] += 1
+        elif winner == 'a':
+            run_stats['elo_tier'][t_a]['w'] += 1
+            run_stats['elo_tier'][t_b]['l'] += 1
+        else:
+            run_stats['elo_tier'][t_a]['l'] += 1
+            run_stats['elo_tier'][t_b]['w'] += 1
     
     return {
         'r32': [team for match in r32_bracket for team in match],
@@ -285,5 +398,6 @@ def run_one_simulation(teams, matches_played, ratings):
         'r16_bracket': r16_bracket,
         'qf_bracket': qf_bracket,
         'sf_bracket': sf_bracket,
-        'final_bracket': final_bracket
+        'final_bracket': final_bracket,
+        'run_stats': run_stats
     }

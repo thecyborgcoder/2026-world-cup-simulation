@@ -2,7 +2,7 @@ import csv
 import json
 import os
 
-def generate_reports(results_tally, matchups_tally, num_sims, output_dir):
+def generate_reports(results_tally, matchups_tally, global_run_stats, num_sims, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     
     # Calculate percentages
@@ -79,6 +79,55 @@ def generate_reports(results_tally, matchups_tally, num_sims, output_dir):
                 f.write(f"| {ta} vs {tb} | {prob:.1f}% | {ta} ({wa_prob:.1f}%) | {tb} ({wb_prob:.1f}%) |\n")
             f.write("\n")
             
+    # Generate Diagnostic Report
+    diag_md_path = os.path.join(output_dir, 'diagnostic_report.md')
+    with open(diag_md_path, 'w', encoding='utf-8') as f:
+        rs = global_run_stats
+        
+        total_group_games = max(1, rs['group_games'])
+        total_ko_games = max(1, rs['ko_games'])
+        decisive_group_games = max(1, rs['team_a_wins'] + rs['team_b_wins'])
+        
+        f.write("# Simulation Diagnostics\n\n")
+        f.write("### Overall Data\n")
+        f.write(f"- **Total Matches Simulated**: {rs['group_games'] + rs['ko_games']}\n\n")
+        
+        f.write("### Group Stage Breakdown\n")
+        f.write(f"- **Matches Simulated**: {rs['group_games']}\n")
+        f.write(f"- **Total Goals Scored**: {rs['group_goals']}\n")
+        f.write(f"- **Avg Goals per Match**: {rs['group_goals'] / total_group_games:.2f}\n")
+        f.write(f"- **Matches Ending in a Draw**: {rs['group_draws']} ({(rs['group_draws'] / total_group_games) * 100:.1f}%)\n")
+        f.write(f"- **Matches Ending with a Winner**: {rs['team_a_wins'] + rs['team_b_wins']} ({((rs['team_a_wins'] + rs['team_b_wins']) / total_group_games) * 100:.1f}%)\n")
+        f.write(f"  - Team A Wins: {rs['team_a_wins']} ({(rs['team_a_wins'] / total_group_games) * 100:.1f}%)\n")
+        f.write(f"  - Team B Wins: {rs['team_b_wins']} ({(rs['team_b_wins'] / total_group_games) * 100:.1f}%)\n")
+        f.write(f"- **Avg Goals by Winning Team**: {rs['winner_goals'] / decisive_group_games:.2f}\n")
+        f.write(f"- **Avg Goals by Losing Team**: {rs['loser_goals'] / decisive_group_games:.2f}\n\n")
+        
+        f.write("### Knockout Stage Breakdown\n")
+        f.write(f"- **Total Knockout Matches**: {rs['ko_games']}\n")
+        f.write(f"- **Won in Regular Time (90m)**: {rs['rt_wins']} ({(rs['rt_wins'] / total_ko_games) * 100:.1f}%)\n")
+        f.write(f"- **Won in Extra Time (120m)**: {rs['et_wins']} ({(rs['et_wins'] / total_ko_games) * 100:.1f}%)\n")
+        f.write(f"- **Decided by Penalty Shootout**: {rs['pen_wins']} ({(rs['pen_wins'] / total_ko_games) * 100:.1f}%)\n\n")
+        
+        f.write("### Match Outcomes by Elo Difference\n")
+        f.write(f"| {'Elo Diff':<10} | {'Games':<10} | {'Fav Win%':<9} | {'Dog Win%':<9} | {'Draw%':<6} |\n")
+        f.write(f"|{'-'*12}|{'-'*12}|{'-'*11}|{'-'*11}|{'-'*8}|\n")
+        for b in ['0-50', '51-150', '151-300', '300+']:
+            st = rs['elo_diff'][b]
+            if st['games'] > 0:
+                g = st['games']
+                f.write(f"| {b:<10} | {g:<10} | {st['favorite_wins']/g*100:<9.1f} | {st['underdog_wins']/g*100:<9.1f} | {st['draws']/g*100:<6.1f} |\n")
+        f.write("\n")
+        
+        f.write("### Team Performance by Elo Tier\n")
+        f.write(f"| {'Elo Tier':<10} | {'Games':<10} | {'Win%':<6} | {'Draw%':<6} | {'Loss%':<6} |\n")
+        f.write(f"|{'-'*12}|{'-'*12}|{'-'*8}|{'-'*8}|{'-'*8}|\n")
+        for t in ['1900+', '1800-1899', '1700-1799', '1600-1699', '<1600']:
+            st = rs['elo_tier'][t]
+            if st['games'] > 0:
+                g = st['games']
+                f.write(f"| {t:<10} | {g:<10} | {st['w']/g*100:<6.1f} | {st['d']/g*100:<6.1f} | {st['l']/g*100:<6.1f} |\n")
+                
     # Generate CSV
     csv_path = os.path.join(output_dir, 'simulation_results.csv')
     
