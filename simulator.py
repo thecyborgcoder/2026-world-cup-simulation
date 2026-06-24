@@ -1,5 +1,4 @@
 import random
-import functools
 from probabilities import generate_random_score
 
 def get_location_for_group(group_name):
@@ -21,30 +20,24 @@ def get_location_for_match(match_number):
     return MATCH_LOCATIONS.get(match_number, 'USA')
 
 def simulate_match(team_a, team_b, elo_a, elo_b, location='USA', is_knockout=False):
-    # Apply home (+100) and regional (+30) bonuses
-    hosts = {'United States': 'USA', 'Canada': 'Canada', 'Mexico': 'Mexico'}
-    
-    if team_a in hosts:
-        if hosts[team_a] == location: elo_a += 100
-        elif location in hosts.values(): elo_a += 30
-        
-    if team_b in hosts:
-        if hosts[team_b] == location: elo_b += 100
-        elif location in hosts.values(): elo_b += 30
+    # Flat +100 bonus to hosts for the entire tournament
+    hosts = ['United States', 'Canada', 'Mexico']
+    if team_a in hosts: elo_a += 100
+    if team_b in hosts: elo_b += 100
 
     goals_a, goals_b = generate_random_score(elo_a, elo_b)
     
     if is_knockout:
-        if goals_a > goals_b: return team_a
-        elif goals_b > goals_a: return team_b
+        if goals_a > goals_b: return team_a, 'RT'
+        elif goals_b > goals_a: return team_b, 'RT'
         else:
             # Extra Time
             et_goals_a, et_goals_b = generate_random_score(elo_a, elo_b, scale=0.3333)
-            if et_goals_a > et_goals_b: return team_a
-            elif et_goals_b > et_goals_a: return team_b
+            if et_goals_a > et_goals_b: return team_a, 'ET'
+            elif et_goals_b > et_goals_a: return team_b, 'ET'
             else:
                 # Penalties: 50/50 flip
-                return team_a if random.random() < 0.5 else team_b
+                return (team_a, 'PEN') if random.random() < 0.5 else (team_b, 'PEN')
     else:
         return goals_a, goals_b
 
@@ -154,61 +147,81 @@ def get_standings(group_name, group_teams, group_matches, ratings):
     sorted_teams = sort_tied_teams(group_teams)
     return sorted_teams, stats
 
-@functools.lru_cache(maxsize=None)
-def solve_assignment_cached(w8_groups, t3_groups):
-    def _solve(current):
-        if len(current) == 8: return current
-        i = len(current)
-        for j in range(8):
-            if j not in current:
-                if t3_groups[j] != w8_groups[i]: # Group constraint
-                    res = _solve(current + (j,))
-                    if res: return res
+def assign_3rd_place(best_thirds):
+    slots = [74, 77, 79, 80, 81, 82, 85, 87]
+    allowed_groups = {
+        74: ['A','B','C','D','F'],
+        77: ['C','D','F','G','H'],
+        79: ['C','E','F','H','I'],
+        80: ['E','H','I','J','K'],
+        81: ['B','E','F','I','J'],
+        82: ['A','E','H','I','J'],
+        85: ['E','F','G','I','J'],
+        87: ['D','E','I','J','L']
+    }
+    
+    # Sort groups to be deterministic
+    t3_groups = sorted([x['group'] for x in best_thirds])
+    
+    def solve(idx, current_assignment):
+        if idx == 8:
+            return current_assignment
+        slot = slots[idx]
+        for group in t3_groups:
+            if group not in current_assignment.values() and group in allowed_groups[slot]:
+                current_assignment[slot] = group
+                res = solve(idx + 1, current_assignment)
+                if res: return res
+                del current_assignment[slot]
         return None
-    return _solve(tuple())
+        
+    assignment = solve(0, {})
+    
+    # Fallback just in case no valid matrix exists (shouldn't happen, but just to be safe)
+    if not assignment:
+        assignment = {s: t3_groups[i] for i, s in enumerate(slots)}
+        
+    # Map back to team names
+    group_to_team = {x['group']: x['team'] for x in best_thirds}
+    return {slot: group_to_team[group] for slot, group in assignment.items()}
 
 def build_knockout_bracket(groups_standings, group_stats, ratings):
-    winners = []
-    runners_up = []
+    firsts = {g: standings[0] for g, standings in groups_standings.items()}
+    seconds = {g: standings[1] for g, standings in groups_standings.items()}
+    
     thirds = []
     for g, standings in groups_standings.items():
-        winners.append((g, standings[0]))
-        runners_up.append((g, standings[1]))
         t3 = standings[2]
         thirds.append({'group': g, 'team': t3, 'points': group_stats[g][t3]['points'], 'gd': group_stats[g][t3]['gd'], 'gs': group_stats[g][t3]['gs']})
         
-    # Third-place ranking logic: Total Points, Overall GD, Overall GS, Elo Rating
     thirds.sort(key=lambda x: (x['points'], x['gd'], x['gs'], ratings.get(x['team'], 1500)), reverse=True)
     best_thirds = thirds[:8]
     
-    r32_matches = []
+    r32 = {}
+    # Runners-up vs Runners-up
+    r32[73] = (seconds['A'], seconds['B'])
+    r32[78] = (seconds['E'], seconds['I'])
+    r32[83] = (seconds['K'], seconds['L'])
+    r32[88] = (seconds['D'], seconds['G'])
     
-    # 8 group winners face 8 best thirds
-    w8_groups = tuple(g for g, t in winners[:8])
-    w8_teams = [t for g, t in winners[:8]]
-    t3_groups = tuple(x['group'] for x in best_thirds)
-    t3_teams = [x['team'] for x in best_thirds]
+    # Winners vs Runners-up
+    r32[75] = (firsts['F'], seconds['C'])
+    r32[76] = (firsts['C'], seconds['F'])
+    r32[84] = (firsts['H'], seconds['J'])
+    r32[86] = (firsts['J'], seconds['H'])
     
-    assignment = solve_assignment_cached(w8_groups, t3_groups)
-    if not assignment:
-        assignment = tuple(range(8)) # Fallback if no valid matrix found
-        
-    for i in range(8):
-        r32_matches.append((w8_teams[i], t3_teams[assignment[i]]))
-        
-    # The remaining 4 winners face 4 runners-up
-    r32_matches.append((winners[8][1], runners_up[0][1]))
-    r32_matches.append((winners[9][1], runners_up[1][1]))
-    r32_matches.append((winners[10][1], runners_up[2][1]))
-    r32_matches.append((winners[11][1], runners_up[3][1]))
+    # Winners vs 3rd place
+    t3_assignment = assign_3rd_place(best_thirds)
+    r32[74] = (firsts['E'], t3_assignment[74])
+    r32[77] = (firsts['I'], t3_assignment[77])
+    r32[79] = (firsts['A'], t3_assignment[79])
+    r32[80] = (firsts['L'], t3_assignment[80])
+    r32[81] = (firsts['D'], t3_assignment[81])
+    r32[82] = (firsts['G'], t3_assignment[82])
+    r32[85] = (firsts['B'], t3_assignment[85])
+    r32[87] = (firsts['K'], t3_assignment[87])
     
-    # The remaining 8 runners-up face each other
-    r32_matches.append((runners_up[4][1], runners_up[5][1]))
-    r32_matches.append((runners_up[6][1], runners_up[7][1]))
-    r32_matches.append((runners_up[8][1], runners_up[9][1]))
-    r32_matches.append((runners_up[10][1], runners_up[11][1]))
-    
-    return r32_matches
+    return [r32[i] for i in range(73, 89)]
 
 def simulate_knockout(bracket, ratings, start_match_num):
     next_round = []
@@ -216,15 +229,9 @@ def simulate_knockout(bracket, ratings, start_match_num):
         ta, tb = match
         match_num = start_match_num + i
         loc = get_location_for_match(match_num)
-        winner = simulate_match(ta, tb, ratings.get(ta, 1500), ratings.get(tb, 1500), location=loc, is_knockout=True)
+        winner, _ = simulate_match(ta, tb, ratings.get(ta, 1500), ratings.get(tb, 1500), location=loc, is_knockout=True)
         next_round.append(winner)
-    
-    new_bracket = []
-    for i in range(0, len(next_round), 2):
-        if i + 1 < len(next_round):
-            new_bracket.append((next_round[i], next_round[i+1]))
-            
-    return next_round, new_bracket
+    return next_round
 
 def run_one_simulation(teams, matches_played, ratings):
     groups_standings = {}
@@ -237,12 +244,35 @@ def run_one_simulation(teams, matches_played, ratings):
         group_stats[group_name] = stats
         
     r32_bracket = build_knockout_bracket(groups_standings, group_stats, ratings)
+    r32_teams = simulate_knockout(r32_bracket, ratings, 73)
     
-    r16_teams, r16_bracket = simulate_knockout(r32_bracket, ratings, 73) # Matches 73-88
-    qf_teams, qf_bracket = simulate_knockout(r16_bracket, ratings, 89)   # Matches 89-96
-    sf_teams, sf_bracket = simulate_knockout(qf_bracket, ratings, 97)    # Matches 97-100
-    final_teams, final_bracket = simulate_knockout(sf_bracket, ratings, 101) # Matches 101-102
-    winner, _ = simulate_knockout(final_bracket, ratings, 104)           # Match 104
+    # R16 Mapping
+    w = {73 + i: winner for i, winner in enumerate(r32_teams)}
+    r16_bracket = [
+        (w[74], w[77]), (w[73], w[75]), (w[76], w[78]), (w[79], w[80]),
+        (w[83], w[84]), (w[81], w[82]), (w[85], w[87]), (w[86], w[88])
+    ]
+    r16_teams = simulate_knockout(r16_bracket, ratings, 89)
+    
+    # QF Mapping
+    w16 = {89 + i: winner for i, winner in enumerate(r16_teams)}
+    qf_bracket = [
+        (w16[89], w16[90]), (w16[91], w16[92]), 
+        (w16[93], w16[94]), (w16[95], w16[96])
+    ]
+    qf_teams = simulate_knockout(qf_bracket, ratings, 97)
+    
+    # SF Mapping
+    wqf = {97 + i: winner for i, winner in enumerate(qf_teams)}
+    sf_bracket = [
+        (wqf[97], wqf[98]), (wqf[99], wqf[100])
+    ]
+    sf_teams = simulate_knockout(sf_bracket, ratings, 101)
+    
+    # Final
+    wsf = {101 + i: winner for i, winner in enumerate(sf_teams)}
+    final_bracket = [(wsf[101], wsf[102])]
+    final_teams = simulate_knockout(final_bracket, ratings, 104)
     
     return {
         'r32': [team for match in r32_bracket for team in match],
@@ -250,7 +280,7 @@ def run_one_simulation(teams, matches_played, ratings):
         'qf': qf_teams,
         'sf': sf_teams,
         'final': final_teams,
-        'winner': winner[0],
+        'winner': final_teams[0],
         'r32_bracket': r32_bracket,
         'r16_bracket': r16_bracket,
         'qf_bracket': qf_bracket,

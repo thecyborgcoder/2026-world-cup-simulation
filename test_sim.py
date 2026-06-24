@@ -49,19 +49,6 @@ def get_match_probabilities(elo_a, elo_b, rho=-0.10):
             
     return prob_w, prob_d, prob_l
 
-def apply_elo_bonuses(team_a, team_b, elo_a, elo_b, location):
-    hosts = {'United States': 'USA', 'Canada': 'Canada', 'Mexico': 'Mexico'}
-    
-    if team_a in hosts:
-        if hosts[team_a] == location: elo_a += 100
-        elif location in hosts.values(): elo_a += 30
-        
-    if team_b in hosts:
-        if hosts[team_b] == location: elo_b += 100
-        elif location in hosts.values(): elo_b += 30
-        
-    return elo_a, elo_b
-
 def main():
     log("# 2026 World Cup Detailed Simulation Test Report\n")
     print("Loading data...")
@@ -71,6 +58,7 @@ def main():
         matches = json.load(f)
         
     ratings = fetch_elo_ratings(cache_hours=24)
+    hosts = ['United States', 'Canada', 'Mexico']
     
     all_simulated_matches = []
     groups_standings = {}
@@ -79,7 +67,7 @@ def main():
     log("## Group Stage Matches (Simulated Remaining)\n")
     
     for group_name, group_teams in teams.items():
-        # Determine location
+        # Determine location just for display/API compatibility, bonus is flat now
         if group_name == 'A': loc = 'Mexico'
         elif group_name == 'B': loc = 'Canada'
         else: loc = 'USA'
@@ -92,7 +80,8 @@ def main():
                 ta, tb = group_teams[i], group_teams[j]
                 if tuple(sorted([ta, tb])) not in played_pairs:
                     elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
-                    adj_elo_a, adj_elo_b = apply_elo_bonuses(ta, tb, elo_a, elo_b, loc)
+                    adj_elo_a = elo_a + 100 if ta in hosts else elo_a
+                    adj_elo_b = elo_b + 100 if tb in hosts else elo_b
                     
                     pw, pd, pl = get_match_probabilities(adj_elo_a, adj_elo_b)
                     ga, gb = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=False)
@@ -132,12 +121,12 @@ def main():
             loc = get_location_for_match(match_num)
             
             elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
-            adj_elo_a, adj_elo_b = apply_elo_bonuses(ta, tb, elo_a, elo_b, loc)
+            adj_elo_a = elo_a + 100 if ta in hosts else elo_a
+            adj_elo_b = elo_b + 100 if tb in hosts else elo_b
             pw, pd, pl = get_match_probabilities(adj_elo_a, adj_elo_b)
             
             winner, method = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=True)
             
-            loser = tb if winner == ta else ta
             log(f"**Match {match_num} @ {loc}: {ta} vs {tb}**")
             log(f"   90m Probs: {ta} {pw*100:.1f}% | Draw {pd*100:.1f}% | {tb} {pl*100:.1f}%")
             log(f"   Advancing: **{winner}** (via {method})\n")
@@ -145,20 +134,38 @@ def main():
             next_round.append(winner)
             all_simulated_matches.append({'ta': ta, 'tb': tb, 'winner': winner, 'method': method, 'is_knockout': True})
             
-        new_bracket = []
-        for i in range(0, len(next_round), 2):
-            if i + 1 < len(next_round):
-                new_bracket.append((next_round[i], next_round[i+1]))
-        return next_round, new_bracket
+        return next_round
 
-    r16_teams, r16_bracket = run_ko_round(r32_bracket, 73, "Round of 32")
-    qf_teams, qf_bracket = run_ko_round(r16_bracket, 89, "Round of 16")
-    sf_teams, sf_bracket = run_ko_round(qf_bracket, 97, "Quarter-Finals")
-    final_teams, final_bracket = run_ko_round(sf_bracket, 101, "Semi-Finals")
-    winner, _ = run_ko_round(final_bracket, 104, "Final")
+    r32_teams = run_ko_round(r32_bracket, 73, "Round of 32")
+    
+    w = {73 + i: winner for i, winner in enumerate(r32_teams)}
+    r16_bracket = [
+        (w[74], w[77]), (w[73], w[75]), (w[76], w[78]), (w[79], w[80]),
+        (w[83], w[84]), (w[81], w[82]), (w[85], w[87]), (w[86], w[88])
+    ]
+    r16_teams = run_ko_round(r16_bracket, 89, "Round of 16")
+    
+    w16 = {89 + i: winner for i, winner in enumerate(r16_teams)}
+    qf_bracket = [
+        (w16[89], w16[90]), (w16[91], w16[92]), 
+        (w16[93], w16[94]), (w16[95], w16[96])
+    ]
+    qf_teams = run_ko_round(qf_bracket, 97, "Quarter-Finals")
+    
+    wqf = {97 + i: winner for i, winner in enumerate(qf_teams)}
+    sf_bracket = [
+        (wqf[97], wqf[98]), (wqf[99], wqf[100])
+    ]
+    sf_teams = run_ko_round(sf_bracket, 101, "Semi-Finals")
+    
+    wsf = {101 + i: winner for i, winner in enumerate(sf_teams)}
+    final_bracket = [(wsf[101], wsf[102])]
+    final_teams = run_ko_round(final_bracket, 104, "Final")
+    
+    winner = final_teams[0]
     
     log("\n" + "="*50)
-    log(f" TOURNAMENT WINNER: {winner[0].upper()} ")
+    log(f" TOURNAMENT WINNER: {winner.upper()} ")
     log("="*50 + "\n")
     
     log("## Simulation Diagnostics\n")
