@@ -1,25 +1,232 @@
+"""
+test_sim.py
+
+This script runs a highly detailed, single-pass simulation of the 2026 World Cup.
+Unlike the main simulation (which runs silently 100,000+ times across multiple CPU cores), 
+this script is designed for manual diagnostic testing and evaluation.
+
+It "unrolls" the main simulation loop to intercept data at every step, allowing it to:
+1. Print the expected Win/Draw/Loss probabilities for every single match.
+2. Log the exact scorelines and advancing teams.
+3. Build and display visual text diagrams of the final Group Stage standings.
+4. Track and print the entire Knockout Bracket progression from R32 to the Final.
+5. Output final tournament metrics (e.g., average goals, draw %, avg goals by winners).
+
+Crucially, it imports and utilizes the exact same core engine, Elo calculations, 
+and tiebreaker logic as the full simulation to ensure perfect 1:1 accuracy.
+"""
+
 import json
+import math
+import os
 from elo_fetcher import fetch_elo_ratings
-from simulator import run_one_simulation
+from simulator import get_location_for_match, simulate_match, get_standings, build_knockout_bracket
+from probabilities import get_expected_goals, poisson_prob
 
-with open('teams.json', 'r') as f:
-    teams = json.load(f)
-with open('matches.json', 'r') as f:
-    matches = json.load(f)
+# Buffer for markdown output
+report_lines = []
 
-ratings = fetch_elo_ratings(cache_hours=24)
+def log(text):
+    print(text)
+    report_lines.append(text)
 
-# Run 5 simulations and print the R32 teams to see if they vary
-for i in range(5):
-    res = run_one_simulation(teams, matches, ratings)
-    r32_teams = sorted(res['r32'])
-    print(f"Sim {i} R32 teams ({len(r32_teams)}): {r32_teams}")
+def get_match_probabilities(elo_a, elo_b, rho=-0.10):
+    xg_a, xg_b = get_expected_goals(elo_a, elo_b)
+    prob_w, prob_d, prob_l = 0.0, 0.0, 0.0
     
-    # Let's also print Group K standings for Sim 0
-    if i == 0:
-        from simulator import get_standings
-        group_m = [m for m in matches if m['team_a'] in teams['K'] and m['team_b'] in teams['K']]
-        standings, stats = get_standings('K', teams['K'], group_m, ratings)
-        print("Group K Stats:")
-        for t in standings:
-            print(f"  {t}: {stats[t]}")
+    for i in range(11):
+        for j in range(11):
+            p = poisson_prob(xg_a, i) * poisson_prob(xg_b, j)
+            if rho != 0:
+                if i == 0 and j == 0: p *= max(0, 1 - xg_a * xg_b * rho)
+                elif i == 0 and j == 1: p *= max(0, 1 + xg_a * rho)
+                elif i == 1 and j == 0: p *= max(0, 1 + xg_b * rho)
+                elif i == 1 and j == 1: p *= max(0, 1 - rho)
+                
+            if i > j: prob_w += p
+            elif i == j: prob_d += p
+            else: prob_l += p
+            
+    return prob_w, prob_d, prob_l
+
+def apply_elo_bonuses(team_a, team_b, elo_a, elo_b, location):
+    hosts = {'United States': 'USA', 'Canada': 'Canada', 'Mexico': 'Mexico'}
+    
+    if team_a in hosts:
+        if hosts[team_a] == location: elo_a += 100
+        elif location in hosts.values(): elo_a += 30
+        
+    if team_b in hosts:
+        if hosts[team_b] == location: elo_b += 100
+        elif location in hosts.values(): elo_b += 30
+        
+    return elo_a, elo_b
+
+def main():
+    log("# 2026 World Cup Detailed Simulation Test Report\n")
+    print("Loading data...")
+    with open('teams.json', 'r') as f:
+        teams = json.load(f)
+    with open('matches.json', 'r') as f:
+        matches = json.load(f)
+        
+    ratings = fetch_elo_ratings(cache_hours=24)
+    
+    all_simulated_matches = []
+    groups_standings = {}
+    group_stats = {}
+    
+    log("## Group Stage Matches (Simulated Remaining)\n")
+    
+    for group_name, group_teams in teams.items():
+        # Determine location
+        if group_name == 'A': loc = 'Mexico'
+        elif group_name == 'B': loc = 'Canada'
+        else: loc = 'USA'
+        
+        group_m = [m for m in matches if m['team_a'] in group_teams and m['team_b'] in group_teams]
+        played_pairs = {tuple(sorted([m['team_a'], m['team_b']])) for m in group_m}
+        
+        for i in range(len(group_teams)):
+            for j in range(i + 1, len(group_teams)):
+                ta, tb = group_teams[i], group_teams[j]
+                if tuple(sorted([ta, tb])) not in played_pairs:
+                    elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
+                    adj_elo_a, adj_elo_b = apply_elo_bonuses(ta, tb, elo_a, elo_b, loc)
+                    
+                    pw, pd, pl = get_match_probabilities(adj_elo_a, adj_elo_b)
+                    ga, gb = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=False)
+                    
+                    log(f"**[{group_name}] {ta} vs {tb} @ {loc}**")
+                    log(f"   Win Probs: {ta} {pw*100:.1f}% | Draw {pd*100:.1f}% | {tb} {pl*100:.1f}%")
+                    log(f"   Result: **{ta} {ga} - {gb} {tb}**\n")
+                    
+                    all_simulated_matches.append({'ta': ta, 'tb': tb, 'ga': ga, 'gb': gb, 'is_knockout': False})
+                    # Add to group_m so get_standings can calculate everything correctly
+                    group_m.append({'team_a': ta, 'team_b': tb, 'score_a': ga, 'score_b': gb})
+                    
+        standings, stats = get_standings(group_name, group_teams, group_m, ratings)
+        groups_standings[group_name] = standings
+        group_stats[group_name] = stats
+        
+    log("## Final Group Stage Standings\n")
+    for group_name in sorted(groups_standings.keys()):
+        log(f"### Group {group_name}")
+        log(f"| {'Team':<25} | {'Pts':<3} | {'GD':<3} | {'GS':<3} |")
+        log(f"|{'-'*27}|{'-'*5}|{'-'*5}|{'-'*5}|")
+        for t in groups_standings[group_name]:
+            s = group_stats[group_name][t]
+            log(f"| {t:<25} | {s['points']:<3} | {s['gd']:<3} | {s['gs']:<3} |")
+        log("")
+            
+    log("\n## Knockout Stage Bracket\n")
+    
+    r32_bracket = build_knockout_bracket(groups_standings, group_stats, ratings)
+    
+    def run_ko_round(bracket, start_match_num, round_name):
+        log(f"### {round_name.upper()}")
+        next_round = []
+        for i, match in enumerate(bracket):
+            ta, tb = match
+            match_num = start_match_num + i
+            loc = get_location_for_match(match_num)
+            
+            elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
+            adj_elo_a, adj_elo_b = apply_elo_bonuses(ta, tb, elo_a, elo_b, loc)
+            pw, pd, pl = get_match_probabilities(adj_elo_a, adj_elo_b)
+            
+            winner, method = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=True)
+            
+            loser = tb if winner == ta else ta
+            log(f"**Match {match_num} @ {loc}: {ta} vs {tb}**")
+            log(f"   90m Probs: {ta} {pw*100:.1f}% | Draw {pd*100:.1f}% | {tb} {pl*100:.1f}%")
+            log(f"   Advancing: **{winner}** (via {method})\n")
+            
+            next_round.append(winner)
+            all_simulated_matches.append({'ta': ta, 'tb': tb, 'winner': winner, 'method': method, 'is_knockout': True})
+            
+        new_bracket = []
+        for i in range(0, len(next_round), 2):
+            if i + 1 < len(next_round):
+                new_bracket.append((next_round[i], next_round[i+1]))
+        return next_round, new_bracket
+
+    r16_teams, r16_bracket = run_ko_round(r32_bracket, 73, "Round of 32")
+    qf_teams, qf_bracket = run_ko_round(r16_bracket, 89, "Round of 16")
+    sf_teams, sf_bracket = run_ko_round(qf_bracket, 97, "Quarter-Finals")
+    final_teams, final_bracket = run_ko_round(sf_bracket, 101, "Semi-Finals")
+    winner, _ = run_ko_round(final_bracket, 104, "Final")
+    
+    log("\n" + "="*50)
+    log(f" TOURNAMENT WINNER: {winner[0].upper()} ")
+    log("="*50 + "\n")
+    
+    log("## Simulation Diagnostics\n")
+    
+    total_matches = len(all_simulated_matches)
+    group_matches = [m for m in all_simulated_matches if not m['is_knockout']]
+    ko_matches = [m for m in all_simulated_matches if m['is_knockout']]
+    
+    # Group Stage Stats
+    total_goals = sum(m['ga'] + m['gb'] for m in group_matches)
+    avg_goals = total_goals / max(1, len(group_matches))
+    
+    team_a_wins = 0
+    draws = 0
+    team_b_wins = 0
+    winner_goals = 0
+    loser_goals = 0
+    
+    for m in group_matches:
+        if m['ga'] > m['gb']:
+            team_a_wins += 1
+            winner_goals += m['ga']
+            loser_goals += m['gb']
+        elif m['ga'] < m['gb']:
+            team_b_wins += 1
+            winner_goals += m['gb']
+            loser_goals += m['ga']
+        else:
+            draws += 1
+            
+    win_pct = (team_a_wins + team_b_wins) / len(group_matches) * 100
+    draw_pct = draws / len(group_matches) * 100
+    
+    decisive_games = team_a_wins + team_b_wins
+    avg_winner_goals = winner_goals / max(1, decisive_games) if decisive_games > 0 else 0
+    avg_loser_goals = loser_goals / max(1, decisive_games) if decisive_games > 0 else 0
+    
+    # Knockout Stats
+    rt_wins = sum(1 for m in ko_matches if m['method'] == 'RT')
+    et_wins = sum(1 for m in ko_matches if m['method'] == 'ET')
+    pen_wins = sum(1 for m in ko_matches if m['method'] == 'PEN')
+    
+    log("### Overall Data")
+    log(f"- **Total Matches Simulated**: {total_matches}")
+    
+    log("\n### Group Stage Breakdown")
+    log(f"- **Matches Simulated**: {len(group_matches)}")
+    log(f"- **Total Goals Scored**: {total_goals}")
+    log(f"- **Avg Goals per Match**: {avg_goals:.2f}")
+    log(f"- **Matches Ending in a Draw**: {draws} ({draw_pct:.1f}%)")
+    log(f"- **Matches Ending with a Winner**: {decisive_games} ({win_pct:.1f}%)")
+    log(f"  - Team A Wins: {team_a_wins} ({team_a_wins/len(group_matches)*100:.1f}%)")
+    log(f"  - Team B Wins: {team_b_wins} ({team_b_wins/len(group_matches)*100:.1f}%)")
+    log(f"- **Avg Goals by Winning Team**: {avg_winner_goals:.2f}")
+    log(f"- **Avg Goals by Losing Team**: {avg_loser_goals:.2f}")
+    
+    log("\n### Knockout Stage Breakdown")
+    log(f"- **Total Knockout Matches**: {len(ko_matches)}")
+    log(f"- **Won in Regular Time (90m)**: {rt_wins} ({rt_wins/len(ko_matches)*100:.1f}%)")
+    log(f"- **Won in Extra Time (120m)**: {et_wins} ({et_wins/len(ko_matches)*100:.1f}%)")
+    log(f"- **Decided by Penalty Shootout**: {pen_wins} ({pen_wins/len(ko_matches)*100:.1f}%)")
+    
+    # Write to file
+    os.makedirs('outputs', exist_ok=True)
+    with open('outputs/test_sim_report.md', 'w', encoding='utf-8') as f:
+        f.write('\n'.join(report_lines))
+        
+    print("\n[INFO] Complete report saved to outputs/test_sim_report.md")
+
+if __name__ == '__main__':
+    main()
