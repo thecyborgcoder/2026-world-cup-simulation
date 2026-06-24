@@ -7,21 +7,30 @@ def get_location_for_group(group_name):
     if group_name == 'B': return 'Canada'
     return 'USA'
 
-def get_location_for_knockout(team_a, team_b, round_name):
-    if round_name in ['r32', 'r16']:
-        if 'Canada' in [team_a, team_b]: return 'Canada'
-        if 'Mexico' in [team_a, team_b]: return 'Mexico'
-    return 'USA'
+MATCH_LOCATIONS = {
+    73: 'USA', 74: 'USA', 75: 'Mexico', 76: 'USA', 77: 'USA', 78: 'USA', 79: 'Mexico', 80: 'USA',
+    81: 'USA', 82: 'USA', 83: 'Canada', 84: 'USA', 85: 'Canada', 86: 'USA', 87: 'USA', 88: 'USA',
+    89: 'USA', 90: 'USA', 91: 'USA', 92: 'Mexico', 93: 'USA', 94: 'USA', 95: 'USA', 96: 'Canada',
+    97: 'USA', 98: 'USA', 99: 'USA', 100: 'USA',
+    101: 'USA', 102: 'USA',
+    103: 'USA', 
+    104: 'USA'
+}
+
+def get_location_for_match(match_number):
+    return MATCH_LOCATIONS.get(match_number, 'USA')
 
 def simulate_match(team_a, team_b, elo_a, elo_b, location='USA', is_knockout=False):
-    # Apply bonus only if playing in home country
-    if team_a == 'United States' and location == 'USA': elo_a += 100
-    if team_a == 'Canada' and location == 'Canada': elo_a += 100
-    if team_a == 'Mexico' and location == 'Mexico': elo_a += 100
-
-    if team_b == 'United States' and location == 'USA': elo_b += 100
-    if team_b == 'Canada' and location == 'Canada': elo_b += 100
-    if team_b == 'Mexico' and location == 'Mexico': elo_b += 100
+    # Apply home (+100) and regional (+30) bonuses
+    hosts = {'United States': 'USA', 'Canada': 'Canada', 'Mexico': 'Mexico'}
+    
+    if team_a in hosts:
+        if hosts[team_a] == location: elo_a += 100
+        elif location in hosts.values(): elo_a += 30
+        
+    if team_b in hosts:
+        if hosts[team_b] == location: elo_b += 100
+        elif location in hosts.values(): elo_b += 30
 
     goals_a, goals_b = generate_random_score(elo_a, elo_b)
     
@@ -201,11 +210,12 @@ def build_knockout_bracket(groups_standings, group_stats, ratings):
     
     return r32_matches
 
-def simulate_knockout(bracket, ratings, round_name):
+def simulate_knockout(bracket, ratings, start_match_num):
     next_round = []
-    for match in bracket:
+    for i, match in enumerate(bracket):
         ta, tb = match
-        loc = get_location_for_knockout(ta, tb, round_name)
+        match_num = start_match_num + i
+        loc = get_location_for_match(match_num)
         winner = simulate_match(ta, tb, ratings.get(ta, 1500), ratings.get(tb, 1500), location=loc, is_knockout=True)
         next_round.append(winner)
     
@@ -228,11 +238,11 @@ def run_one_simulation(teams, matches_played, ratings):
         
     r32_bracket = build_knockout_bracket(groups_standings, group_stats, ratings)
     
-    r16_teams, r16_bracket = simulate_knockout(r32_bracket, ratings, 'r32')
-    qf_teams, qf_bracket = simulate_knockout(r16_bracket, ratings, 'r16')
-    sf_teams, sf_bracket = simulate_knockout(qf_bracket, ratings, 'qf')
-    final_teams, final_bracket = simulate_knockout(sf_bracket, ratings, 'sf')
-    winner, _ = simulate_knockout(final_bracket, ratings, 'final')
+    r16_teams, r16_bracket = simulate_knockout(r32_bracket, ratings, 73) # Matches 73-88
+    qf_teams, qf_bracket = simulate_knockout(r16_bracket, ratings, 89)   # Matches 89-96
+    sf_teams, sf_bracket = simulate_knockout(qf_bracket, ratings, 97)    # Matches 97-100
+    final_teams, final_bracket = simulate_knockout(sf_bracket, ratings, 101) # Matches 101-102
+    winner, _ = simulate_knockout(final_bracket, ratings, 104)           # Match 104
     
     return {
         'r32': [team for match in r32_bracket for team in match],
