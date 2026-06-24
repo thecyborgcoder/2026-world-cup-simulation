@@ -276,10 +276,10 @@ def run_one_simulation(teams, matches_played, ratings):
     
     return {
         'r32': [team for match in r32_bracket for team in match],
-        'r16': r16_teams,
-        'qf': qf_teams,
-        'sf': sf_teams,
-        'final': final_teams,
+        'r16': r32_teams,
+        'qf': r16_teams,
+        'sf': qf_teams,
+        'final': sf_teams,
         'winner': final_teams[0],
         'r32_bracket': r32_bracket,
         'r16_bracket': r16_bracket,
