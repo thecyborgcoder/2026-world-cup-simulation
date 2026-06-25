@@ -94,7 +94,7 @@ def main():
                     # Add to group_m so get_standings can calculate everything correctly
                     group_m.append({'team_a': ta, 'team_b': tb, 'score_a': ga, 'score_b': gb})
                     
-        standings, stats = get_standings(group_name, group_teams, group_m, ratings)
+        standings, stats, _ = get_standings(group_name, group_teams, group_m, ratings)
         groups_standings[group_name] = standings
         group_stats[group_name] = stats
         
