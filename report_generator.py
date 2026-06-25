@@ -105,6 +105,10 @@ def generate_reports(results_tally, matchups_tally, global_run_stats, num_sims, 
         
         f.write("### Knockout Stage Breakdown\n")
         f.write(f"- **Total Knockout Matches**: {rs['ko_games']}\n")
+        f.write(f"- **Total Goals Scored**: {rs['ko_goals']}\n")
+        f.write(f"- **Avg Goals per Match**: {rs['ko_goals'] / total_ko_games:.2f}\n")
+        f.write(f"- **Avg Goals by Winning Team**: {rs['ko_winner_goals'] / total_ko_games:.2f}\n")
+        f.write(f"- **Avg Goals by Losing Team**: {rs['ko_loser_goals'] / total_ko_games:.2f}\n")
         f.write(f"- **Won in Regular Time (90m)**: {rs['rt_wins']} ({(rs['rt_wins'] / total_ko_games) * 100:.1f}%)\n")
         f.write(f"- **Won in Extra Time (120m)**: {rs['et_wins']} ({(rs['et_wins'] / total_ko_games) * 100:.1f}%)\n")
         f.write(f"- **Decided by Penalty Shootout**: {rs['pen_wins']} ({(rs['pen_wins'] / total_ko_games) * 100:.1f}%)\n\n")
@@ -119,9 +123,9 @@ def generate_reports(results_tally, matchups_tally, global_run_stats, num_sims, 
                 f.write(f"| {b:<10} | {g:<10} | {st['favorite_wins']/g*100:<9.1f} | {st['underdog_wins']/g*100:<9.1f} | {st['draws']/g*100:<6.1f} |\n")
         f.write("\n")
         
-        f.write("### Team Performance by Elo Tier\n")
-        f.write(f"| {'Elo Tier':<10} | {'Games':<10} | {'Win%':<6} | {'Draw%':<6} | {'Loss%':<6} |\n")
-        f.write(f"|{'-'*12}|{'-'*12}|{'-'*8}|{'-'*8}|{'-'*8}|\n")
+        f.write("### Team Performance by Elo Tier (Group Stage Only)\n")
+        f.write(f"| {'Elo Tier':<10} | {'Group Gs':<10} | {'Grp Win%':<8} | {'Grp Draw%':<9} | {'Grp Loss%':<9} |\n")
+        f.write(f"|{'-'*12}|{'-'*12}|{'-'*10}|{'-'*11}|{'-'*11}|\n")
         for t in ['1900+', '1800-1899', '1700-1799', '1600-1699', '<1600']:
             st = rs['elo_tier'][t]
             if st['games'] > 0:

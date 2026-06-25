@@ -125,14 +125,14 @@ def main():
             adj_elo_b = elo_b + 100 if tb in hosts else elo_b
             pw, pd, pl = get_match_probabilities(adj_elo_a, adj_elo_b)
             
-            winner, method = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=True)
+            winner, method, ga, gb = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=True)
             
             log(f"**Match {match_num} @ {loc}: {ta} vs {tb}**")
             log(f"   90m Probs: {ta} {pw*100:.1f}% | Draw {pd*100:.1f}% | {tb} {pl*100:.1f}%")
             log(f"   Advancing: **{winner}** (via {method})\n")
             
             next_round.append(winner)
-            all_simulated_matches.append({'ta': ta, 'tb': tb, 'winner': winner, 'method': method, 'is_knockout': True, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b})
+            all_simulated_matches.append({'ta': ta, 'tb': tb, 'ga': ga, 'gb': gb, 'winner': winner, 'method': method, 'is_knockout': True, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b})
             
         return next_round
 
@@ -222,8 +222,19 @@ def main():
     log(f"- **Avg Goals by Winning Team**: {avg_winner_goals:.2f}")
     log(f"- **Avg Goals by Losing Team**: {avg_loser_goals:.2f}")
     
+    ko_total_goals = sum(m.get('ga', 0) + m.get('gb', 0) for m in ko_matches)
+    ko_avg_goals = ko_total_goals / max(1, len(ko_matches))
+    ko_winner_goals = sum(m['ga'] if m['winner'] == m['ta'] else m['gb'] for m in ko_matches)
+    ko_loser_goals = sum(m['gb'] if m['winner'] == m['ta'] else m['ga'] for m in ko_matches)
+    ko_avg_winner_goals = ko_winner_goals / max(1, len(ko_matches))
+    ko_avg_loser_goals = ko_loser_goals / max(1, len(ko_matches))
+
     log("\n### Knockout Stage Breakdown")
     log(f"- **Total Knockout Matches**: {len(ko_matches)}")
+    log(f"- **Total Goals Scored**: {ko_total_goals}")
+    log(f"- **Avg Goals per Match**: {ko_avg_goals:.2f}")
+    log(f"- **Avg Goals by Winning Team**: {ko_avg_winner_goals:.2f}")
+    log(f"- **Avg Goals by Losing Team**: {ko_avg_loser_goals:.2f}")
     log(f"- **Won in Regular Time (90m)**: {rt_wins} ({rt_wins/len(ko_matches)*100:.1f}%)")
     log(f"- **Won in Extra Time (120m)**: {et_wins} ({et_wins/max(1,len(ko_matches))*100:.1f}%)")
     log(f"- **Decided by Penalty Shootout**: {pen_wins} ({pen_wins/max(1,len(ko_matches))*100:.1f}%)")
