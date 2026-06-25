@@ -466,5 +466,23 @@
         "score_a": 0,
         "score_b": 3,
         "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 24",
+        "group": "A",
+        "team_a": "Mexico",
+        "team_b": "Czechia",
+        "score_a": 3,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 24",
+        "group": "A",
+        "team_a": "South Africa",
+        "team_b": "South Korea",
+        "score_a": 1,
+        "score_b": 0,
+        "status": "FT"
     }
 ]
