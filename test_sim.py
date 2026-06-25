@@ -30,9 +30,16 @@ def log(text):
     print(text)
     report_lines.append(text)
 
-def get_match_probabilities(elo_a, elo_b, rho=-0.10):
+def get_match_probabilities(elo_a, elo_b):
     xg_a, xg_b = get_expected_goals(elo_a, elo_b)
+    
+    # Dynamic Dixon-Coles adjustment
+    base_rho = -0.10
+    rho_multiplier = max(0.0, 1.0 - (abs(elo_a - elo_b) / 300.0))
+    rho = base_rho * rho_multiplier
+    
     prob_w, prob_d, prob_l = 0.0, 0.0, 0.0
+    raw_probs = {}
     
     for i in range(11):
         for j in range(11):
@@ -43,16 +50,19 @@ def get_match_probabilities(elo_a, elo_b, rho=-0.10):
                 elif i == 1 and j == 0: p *= max(0, 1 + xg_b * rho)
                 elif i == 1 and j == 1: p *= max(0, 1 - rho)
                 
-            if i > j: prob_w += p
-            elif i == j: prob_d += p
-            else: prob_l += p
-    # Cap draw probability for 300+ mismatches
-    if abs(elo_a - elo_b) >= 300:
-        if prob_d > 0.12:
-            excess = prob_d - 0.12
-            prob_d = 0.12
-            if elo_a >= elo_b: prob_w += excess
-            else: prob_l += excess
+            # "Foot off the Gas" Variance Tightening
+            if i >= 4: p *= (0.6 ** (i - 3))
+            if j >= 4: p *= (0.6 ** (j - 3))
+                
+            raw_probs[(i, j)] = p
+            
+    total_prob = sum(raw_probs.values())
+    
+    for (i, j), p in raw_probs.items():
+        normalized_p = p / total_prob
+        if i > j: prob_w += normalized_p
+        elif i == j: prob_d += normalized_p
+        else: prob_l += normalized_p
             
     return prob_w, prob_d, prob_l
 

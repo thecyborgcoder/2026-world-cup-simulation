@@ -35,11 +35,16 @@ def generate_random_score(elo_a, elo_b, scale=1.0, is_knockout=False):
     xg_a *= scale
     xg_b *= scale
     
-    # Apply Dixon-Coles adjustment only for full matches (scale == 1.0)
+    # Dynamic Dixon-Coles adjustment
     # A negative rho increases the probability of low-scoring draws.
-    # rho = -0.10 yields ~28.9% draws for evenly matched teams (safely under 30%).
-    rho = -0.10 if scale == 1.0 else 0.0
-    
+    # We smoothly scale rho to 0 as the Elo difference widens to prevent artificial upset draws.
+    if scale == 1.0:
+        base_rho = -0.10
+        rho_multiplier = max(0.0, 1.0 - (abs(elo_a - elo_b) / 300.0))
+        rho = base_rho * rho_multiplier
+    else:
+        rho = 0.0
+        
     max_goals = 10
     probs = {}
     r_dispersion = 5.0
@@ -59,24 +64,15 @@ def generate_random_score(elo_a, elo_b, scale=1.0, is_knockout=False):
                 elif i == 1 and j == 1:
                     prob *= max(0, 1 - rho)
                     
+            # "Foot off the Gas" Variance Tightening
+            # Exponentially decay the probability of scoring 4+ goals to simulate teams resting players
+            if i >= 4:
+                prob *= (0.6 ** (i - 3))
+            if j >= 4:
+                prob *= (0.6 ** (j - 3))
+                    
             probs[(i, j)] = prob
             
-    # Cap draw probability for 300+ mismatches
-    if abs(elo_a - elo_b) >= 300:
-        draw_keys = [(i, i) for i in range(max_goals + 1)]
-        current_draw_prob = sum(probs[k] for k in draw_keys)
-        if current_draw_prob > 0.12:
-            scale_factor = 0.12 / current_draw_prob
-            excess = current_draw_prob - 0.12
-            for k in draw_keys:
-                probs[k] *= scale_factor
-            
-            # Re-distribute the excess probability to the favorite winning by 1 goal
-            if elo_a >= elo_b:
-                probs[(1, 0)] += excess
-            else:
-                probs[(0, 1)] += excess
-                
     # Sample from the distribution
     total_prob = sum(probs.values())
     r = random.random() * total_prob
