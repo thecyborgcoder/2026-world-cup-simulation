@@ -430,5 +430,41 @@
         "score_a": 0,
         "score_b": 1,
         "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 24",
+        "group": "B",
+        "team_a": "Switzerland",
+        "team_b": "Canada",
+        "score_a": 2,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 24",
+        "group": "B",
+        "team_a": "Bosnia and Herzegovina",
+        "team_b": "Qatar",
+        "score_a": 3,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 24",
+        "group": "C",
+        "team_a": "Morocco",
+        "team_b": "Haiti",
+        "score_a": 4,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Wed, Jun 24",
+        "group": "C",
+        "team_a": "Scotland",
+        "team_b": "Brazil",
+        "score_a": 0,
+        "score_b": 3,
+        "status": "FT"
     }
 ]
