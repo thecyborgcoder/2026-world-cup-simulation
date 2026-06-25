@@ -46,6 +46,13 @@ def get_match_probabilities(elo_a, elo_b, rho=-0.10):
             if i > j: prob_w += p
             elif i == j: prob_d += p
             else: prob_l += p
+    # Cap draw probability for 300+ mismatches
+    if abs(elo_a - elo_b) >= 300:
+        if prob_d > 0.12:
+            excess = prob_d - 0.12
+            prob_d = 0.12
+            if elo_a >= elo_b: prob_w += excess
+            else: prob_l += excess
             
     return prob_w, prob_d, prob_l
 
