@@ -51,7 +51,7 @@ def main():
     global_run_stats = {
         'group_games': 0, 'group_goals': 0, 'group_draws': 0, 'team_a_wins': 0, 'team_b_wins': 0,
         'winner_goals': 0, 'loser_goals': 0,
-        'ko_games': 0, 'rt_wins': 0, 'et_wins': 0, 'pen_wins': 0,
+        'ko_games': 0, 'ko_goals': 0, 'ko_winner_goals': 0, 'ko_loser_goals': 0, 'rt_wins': 0, 'et_wins': 0, 'pen_wins': 0,
         'elo_diff': {
             '0-50': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
             '51-150': {'games': 0, 'favorite_wins': 0, 'underdog_wins': 0, 'draws': 0},
@@ -98,8 +98,8 @@ def main():
             
             # Aggregate run stats
             rs = result['run_stats']
-            for k in ['group_games', 'group_goals', 'group_draws', 'team_a_wins', 'team_b_wins', 
-                      'winner_goals', 'loser_goals', 'ko_games', 'rt_wins', 'et_wins', 'pen_wins']:
+            for k in ['group_games', 'group_goals', 'group_draws', 'team_a_wins', 'team_b_wins',
+                      'winner_goals', 'loser_goals', 'ko_games', 'ko_goals', 'ko_winner_goals', 'ko_loser_goals', 'rt_wins', 'et_wins', 'pen_wins']:
                 global_run_stats[k] += rs[k]
                 
             for b in rs['elo_diff']:

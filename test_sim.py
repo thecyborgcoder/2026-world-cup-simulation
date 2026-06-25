@@ -21,7 +21,7 @@ import math
 import os
 from elo_fetcher import fetch_elo_ratings
 from simulator import get_location_for_match, simulate_match, get_standings, build_knockout_bracket
-from probabilities import get_expected_goals, poisson_prob
+from probabilities import get_expected_goals, nbinom_prob
 
 # Buffer for markdown output
 report_lines = []
@@ -36,7 +36,7 @@ def get_match_probabilities(elo_a, elo_b, rho=-0.10):
     
     for i in range(11):
         for j in range(11):
-            p = poisson_prob(xg_a, i) * poisson_prob(xg_b, j)
+            p = nbinom_prob(xg_a, 5.0, i) * nbinom_prob(xg_b, 5.0, j)
             if rho != 0:
                 if i == 0 and j == 0: p *= max(0, 1 - xg_a * xg_b * rho)
                 elif i == 0 and j == 1: p *= max(0, 1 + xg_a * rho)
