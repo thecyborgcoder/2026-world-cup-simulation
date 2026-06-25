@@ -20,7 +20,7 @@ import json
 import math
 import os
 from elo_fetcher import fetch_elo_ratings
-from simulator import get_location_for_match, simulate_match, get_standings, build_knockout_bracket
+from simulator import get_location_for_match, simulate_match, get_standings, build_knockout_bracket, get_adjusted_elo
 from probabilities import get_expected_goals, nbinom_prob
 
 # Buffer for markdown output
@@ -80,11 +80,11 @@ def main():
                 ta, tb = group_teams[i], group_teams[j]
                 if tuple(sorted([ta, tb])) not in played_pairs:
                     elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
-                    adj_elo_a = elo_a + 100 if ta in hosts else elo_a
-                    adj_elo_b = elo_b + 100 if tb in hosts else elo_b
+                    adj_elo_a = get_adjusted_elo(ta, elo_a)
+                    adj_elo_b = get_adjusted_elo(tb, elo_b)
                     
                     pw, pd, pl = get_match_probabilities(adj_elo_a, adj_elo_b)
-                    ga, gb = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=False)
+                    ga, gb = simulate_match(ta, tb, adj_elo_a, adj_elo_b, location=loc, is_knockout=False)
                     
                     log(f"**[{group_name}] {ta} vs {tb} @ {loc}**")
                     log(f"   Win Probs: {ta} {pw*100:.1f}% | Draw {pd*100:.1f}% | {tb} {pl*100:.1f}%")
@@ -121,11 +121,11 @@ def main():
             loc = get_location_for_match(match_num)
             
             elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
-            adj_elo_a = elo_a + 100 if ta in hosts else elo_a
-            adj_elo_b = elo_b + 100 if tb in hosts else elo_b
+            adj_elo_a = get_adjusted_elo(ta, elo_a, match_num)
+            adj_elo_b = get_adjusted_elo(tb, elo_b, match_num)
             pw, pd, pl = get_match_probabilities(adj_elo_a, adj_elo_b)
             
-            winner, method, ga, gb = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=True)
+            winner, method, ga, gb = simulate_match(ta, tb, adj_elo_a, adj_elo_b, location=loc, is_knockout=True)
             
             log(f"**Match {match_num} @ {loc}: {ta} vs {tb}**")
             log(f"   90m Probs: {ta} {pw*100:.1f}% | Draw {pd*100:.1f}% | {tb} {pl*100:.1f}%")

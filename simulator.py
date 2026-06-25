@@ -19,11 +19,20 @@ MATCH_LOCATIONS = {
 def get_location_for_match(match_number):
     return MATCH_LOCATIONS.get(match_number, 'USA')
 
+def get_adjusted_elo(team, elo, match_num=None):
+    if match_num is None or match_num <= 96:
+        if team in ['United States', 'Canada', 'Mexico']:
+            return elo + 100
+    else:
+        if team == 'United States':
+            return elo + 100
+        elif team in ['Canada', 'Mexico']:
+            return elo + 30
+    return elo
+
 def simulate_match(team_a, team_b, elo_a, elo_b, location='USA', is_knockout=False):
-    # Flat +100 bonus to hosts for the entire tournament
-    hosts = ['United States', 'Canada', 'Mexico']
-    if team_a in hosts: elo_a += 100
-    if team_b in hosts: elo_b += 100
+    # Note: elo_a and elo_b should already be adjusted before calling this function
+
 
     goals_a, goals_b = generate_random_score(elo_a, elo_b, is_knockout=is_knockout)
     
@@ -61,9 +70,8 @@ def get_standings(group_name, group_teams, group_matches, ratings):
             stats[ta]['gd'] += (sa - sb)
             stats[tb]['gd'] += (sb - sa)
             elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
-            hosts = ['United States', 'Canada', 'Mexico']
-            adj_elo_a = elo_a + 100 if ta in hosts else elo_a
-            adj_elo_b = elo_b + 100 if tb in hosts else elo_b
+            adj_elo_a = get_adjusted_elo(ta, elo_a)
+            adj_elo_b = get_adjusted_elo(tb, elo_b)
 
             if sa > sb: stats[ta]['points'] += 3
             elif sa == sb:
@@ -86,11 +94,10 @@ def get_standings(group_name, group_teams, group_matches, ratings):
                 ta, tb = tb, ta
             if tuple(sorted([ta, tb])) not in played_pairs:
                 elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
-                hosts = ['United States', 'Canada', 'Mexico']
-                adj_elo_a = elo_a + 100 if ta in hosts else elo_a
-                adj_elo_b = elo_b + 100 if tb in hosts else elo_b
+                adj_elo_a = get_adjusted_elo(ta, elo_a)
+                adj_elo_b = get_adjusted_elo(tb, elo_b)
                 
-                ga, gb = simulate_match(ta, tb, elo_a, elo_b, location=location)
+                ga, gb = simulate_match(ta, tb, adj_elo_a, adj_elo_b, location=location)
                 stats[ta]['gd'] += (ga - gb)
                 stats[tb]['gd'] += (gb - ga)
                 stats[ta]['gs'] += ga
@@ -245,7 +252,6 @@ def build_knockout_bracket(groups_standings, group_stats, ratings):
 def simulate_knockout(bracket, ratings, start_match_num):
     next_round = []
     match_data = []
-    hosts = ['United States', 'Canada', 'Mexico']
     for i, match in enumerate(bracket):
         ta, tb = match
         if random.random() < 0.5:
@@ -253,10 +259,10 @@ def simulate_knockout(bracket, ratings, start_match_num):
         match_num = start_match_num + i
         loc = get_location_for_match(match_num)
         elo_a, elo_b = ratings.get(ta, 1500), ratings.get(tb, 1500)
-        adj_elo_a = elo_a + 100 if ta in hosts else elo_a
-        adj_elo_b = elo_b + 100 if tb in hosts else elo_b
+        adj_elo_a = get_adjusted_elo(ta, elo_a, match_num)
+        adj_elo_b = get_adjusted_elo(tb, elo_b, match_num)
         
-        winner, method, ga, gb = simulate_match(ta, tb, elo_a, elo_b, location=loc, is_knockout=True)
+        winner, method, ga, gb = simulate_match(ta, tb, adj_elo_a, adj_elo_b, location=loc, is_knockout=True)
         next_round.append(winner)
         match_data.append({'ta': ta, 'tb': tb, 'winner': winner, 'method': method, 'is_knockout': True, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b, 'sa': ga, 'sb': gb})
     return next_round, match_data
