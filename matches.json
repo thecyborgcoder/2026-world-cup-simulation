@@ -484,5 +484,113 @@
         "score_a": 1,
         "score_b": 0,
         "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 25",
+        "group": "D",
+        "team_a": "Turkey",
+        "team_b": "United States",
+        "score_a": 3,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 25",
+        "group": "D",
+        "team_a": "Paraguay",
+        "team_b": "Australia",
+        "score_a": 0,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 25",
+        "group": "E",
+        "team_a": "Ecuador",
+        "team_b": "Germany",
+        "score_a": 2,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 25",
+        "group": "E",
+        "team_a": "Curacao",
+        "team_b": "Ivory Coast",
+        "score_a": 0,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 25",
+        "group": "F",
+        "team_a": "Tunisia",
+        "team_b": "Netherlands",
+        "score_a": 1,
+        "score_b": 3,
+        "status": "FT"
+    },
+    {
+        "date": "Thu, Jun 25",
+        "group": "F",
+        "team_a": "Japan",
+        "team_b": "Sweden",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 26",
+        "group": "G",
+        "team_a": "New Zealand",
+        "team_b": "Belgium",
+        "score_a": 1,
+        "score_b": 5,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 26",
+        "group": "G",
+        "team_a": "Egypt",
+        "team_b": "Iran",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 26",
+        "group": "H",
+        "team_a": "Spain",
+        "team_b": "Uruguay",
+        "score_a": 1,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 26",
+        "group": "H",
+        "team_a": "Cape Verde",
+        "team_b": "Saudi Arabia",
+        "score_a": 0,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 26",
+        "group": "I",
+        "team_a": "France",
+        "team_b": "Norway",
+        "score_a": 4,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Fri, Jun 26",
+        "group": "I",
+        "team_a": "Senegal",
+        "team_b": "Iraq",
+        "score_a": 4,
+        "score_b": 0,
+        "status": "FT"
     }
 ]
