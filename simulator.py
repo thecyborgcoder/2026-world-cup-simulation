@@ -1,5 +1,20 @@
 import random
+import json
+import os
 from probabilities import generate_random_score
+
+_third_place_matrix = None
+
+def get_third_place_matrix():
+    global _third_place_matrix
+    if _third_place_matrix is None:
+        try:
+            with open(os.path.join(os.path.dirname(__file__), 'third_place_matrix.json'), 'r') as f:
+                _third_place_matrix = json.load(f)
+        except Exception:
+            _third_place_matrix = {}
+    return _third_place_matrix
+
 
 def get_location_for_group(group_name):
     if group_name == 'A': return 'Mexico'
@@ -175,6 +190,33 @@ def get_standings(group_name, group_teams, group_matches, ratings):
 
 def assign_3rd_place(best_thirds):
     slots = [74, 77, 79, 80, 81, 82, 85, 87]
+    t3_groups = sorted([x['group'] for x in best_thirds])
+    group_to_team = {x['group']: x['team'] for x in best_thirds}
+    
+    matrix = get_third_place_matrix()
+    key = "".join(t3_groups)
+    mapping = matrix.get(key)
+    
+    if mapping:
+        winner_to_slot = {
+            '1E': 74,
+            '1I': 77,
+            '1A': 79,
+            '1L': 80,
+            '1D': 81,
+            '1G': 82,
+            '1B': 85,
+            '1K': 87
+        }
+        assignment = {}
+        for winner, third_place in mapping.items():
+            if winner in winner_to_slot:
+                slot = winner_to_slot[winner]
+                group = third_place.replace('3', '')
+                assignment[slot] = group_to_team[group]
+        return assignment
+        
+    # Fallback to backtracking algorithm if matrix not loaded or key missing
     allowed_groups = {
         74: ['A','B','C','D','F'],
         77: ['C','D','F','G','H'],
@@ -185,9 +227,6 @@ def assign_3rd_place(best_thirds):
         85: ['E','F','G','I','J'],
         87: ['D','E','I','J','L']
     }
-    
-    # Sort groups to be deterministic
-    t3_groups = sorted([x['group'] for x in best_thirds])
     
     def solve(idx, current_assignment):
         if idx == 8:
@@ -202,13 +241,9 @@ def assign_3rd_place(best_thirds):
         return None
         
     assignment = solve(0, {})
-    
-    # Fallback just in case no valid matrix exists (shouldn't happen, but just to be safe)
     if not assignment:
         assignment = {s: t3_groups[i] for i, s in enumerate(slots)}
         
-    # Map back to team names
-    group_to_team = {x['group']: x['team'] for x in best_thirds}
     return {slot: group_to_team[group] for slot, group in assignment.items()}
 
 def build_knockout_bracket(groups_standings, group_stats, ratings):
