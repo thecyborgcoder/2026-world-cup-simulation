@@ -1,6 +1,6 @@
 import json
 import os
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import main
 
 class WorldCupHandler(SimpleHTTPRequestHandler):
@@ -9,6 +9,21 @@ class WorldCupHandler(SimpleHTTPRequestHandler):
             path = '/index.html'
         path = '/ui' + path
         return super().translate_path(path)
+
+    def do_GET(self):
+        if self.path == '/api/progress':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            progress_data = {
+                'status': main.current_status,
+                'progress': main.current_progress,
+                'total': main.total_sims
+            }
+            self.wfile.write(json.dumps(progress_data).encode('utf-8'))
+        else:
+            super().do_GET()
 
     def do_POST(self):
         if self.path == '/api/simulate':
@@ -47,8 +62,9 @@ if __name__ == '__main__':
     port = 8000
     server_address = ('', port)
     
-    httpd = HTTPServer(server_address, WorldCupHandler)
+    httpd = ThreadingHTTPServer(server_address, WorldCupHandler)
     print(f"Starting server on http://localhost:{port}/")
     print("API available at POST /api/simulate")
+    print("Progress API available at GET /api/progress")
     print("Press Ctrl+C to stop.")
     httpd.serve_forever()

@@ -49,12 +49,57 @@ document.addEventListener('DOMContentLoaded', () => {
             runBtn.textContent = 'Running...';
             runBtn.disabled = true;
             
+            const progressWrapper = document.getElementById('progress-wrapper');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercentage = document.getElementById('progress-percentage');
+            const progressStatus = document.getElementById('progress-status');
+            
+            if (progressWrapper) {
+                progressWrapper.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressPercentage.textContent = '0%';
+                if (progressStatus) progressStatus.textContent = 'Starting...';
+            }
+            
+            // Poll for progress
+            const pollInterval = setInterval(() => {
+                fetch('/api/progress')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (progressStatus && data.status) progressStatus.textContent = data.status;
+                        
+                        let pct = 0;
+                        if (data.status === 'Fetching Data & ELO Ratings...') {
+                            pct = 2;
+                        } else if (data.status === 'Spawning Worker Processes...') {
+                            pct = 5;
+                        } else if (data.status === 'Aggregating Results...') {
+                            pct = 99;
+                        } else if (data.total > 0) {
+                            // Scale remaining 5-99 space based on true progress
+                            const truePct = data.progress / data.total;
+                            pct = 5 + Math.floor(truePct * 94);
+                        }
+                        
+                        if (progressBar) progressBar.style.width = `${pct}%`;
+                        if (progressPercentage) progressPercentage.textContent = `${pct}%`;
+                    })
+                    .catch(err => console.error("Error polling progress:", err));
+            }, 300);
+            
             fetch('/api/simulate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ simulations: parseInt(simCount, 10) })
             })
             .then(res => {
+                clearInterval(pollInterval);
+                if (progressBar) progressBar.style.width = '100%';
+                if (progressPercentage) progressPercentage.textContent = '100%';
+                setTimeout(() => {
+                    if (progressWrapper) progressWrapper.style.display = 'none';
+                }, 500);
+                
                 if (!res.ok) throw new Error('Simulation failed on server.');
                 return res.json();
             })

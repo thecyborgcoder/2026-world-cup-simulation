@@ -11,6 +11,11 @@ _teams = None
 _matches = None
 _ratings = None
 
+# Progress tracking for the UI
+current_status = "Idle"
+current_progress = 0
+total_sims = 0
+
 def init_worker(teams, matches, ratings):
     global _teams, _matches, _ratings
     _teams = teams
@@ -40,7 +45,12 @@ def run_simulations(override_num_sims=None):
         
     ratings = fetch_elo_ratings(cache_hours=config.get('elo_cache_hours', 24))
     
+    global current_status, current_progress, total_sims
+    current_status = "Fetching Data & ELO Ratings..."
+    current_progress = 0
+    
     num_sims = override_num_sims if override_num_sims is not None else config.get('num_simulations', 1000)
+    total_sims = num_sims
 
     cpu_cores = multiprocessing.cpu_count()
     print(f"Running {num_sims} simulations across {cpu_cores} CPU cores...")
@@ -87,7 +97,10 @@ def run_simulations(override_num_sims=None):
             matchups_tally[stage][pair]['wins'][winner] += 1
     
     # Chunk size optimizations for IPC
-    chunk_size = max(1, num_sims // (cpu_cores * 8))
+    chunk_size = max(1, num_sims // (cpu_cores * 50))
+    
+    current_status = "Spawning Worker Processes..."
+    import time
     
     # Spawn pool and execute simulations in parallel
     with multiprocessing.Pool(initializer=init_worker, initargs=(teams, matches, ratings)) as pool:
@@ -124,9 +137,16 @@ def run_simulations(override_num_sims=None):
                 for k in rs['elo_tier'][t]:
                     global_run_stats['elo_tier'][t][k] += rs['elo_tier'][t][k]
             
+            current_status = "Simulating..."
+            current_progress = i + 1
+            
+            if i % 100 == 0:
+                time.sleep(0.0001)
+            
             if (i + 1) % max(1, num_sims // 10) == 0:
                 print(f"Simulated {i + 1}/{num_sims}")
                 
+    current_status = "Aggregating Results..."
     
     return tally, matchups_tally, global_run_stats, num_sims, config, r32_slot_tally, ratings
 
