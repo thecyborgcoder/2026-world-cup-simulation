@@ -21,7 +21,14 @@ def worker_sim(_):
     # Execute a single simulation using the globally cached data
     return run_one_simulation(_teams, _matches, _ratings)
 
-def main():
+
+def run_simulations(override_num_sims=None):
+    import yaml
+    import json
+    from elo_fetcher import fetch_elo_ratings
+    import multiprocessing
+    from collections import defaultdict
+    
     with open('config.yaml', 'r') as f:
         config = yaml.safe_load(f)
         
@@ -33,11 +40,14 @@ def main():
         
     ratings = fetch_elo_ratings(cache_hours=config.get('elo_cache_hours', 24))
     
-    num_sims = config.get('num_simulations', 1000)
+    num_sims = override_num_sims if override_num_sims is not None else config.get('num_simulations', 1000)
+
     cpu_cores = multiprocessing.cpu_count()
     print(f"Running {num_sims} simulations across {cpu_cores} CPU cores...")
     
     tally = defaultdict(lambda: {'r32': 0, 'r16': 0, 'qf': 0, 'sf': 0, 'final': 0, 'winner': 0})
+    r32_slot_tally = [defaultdict(int) for _ in range(16)]
+
     
     # Matchup tracking: {stage: { (team_a, team_b): {'count': 0, 'wins': {team_a: 0, team_b: 0}} }}
     matchups_tally = {
@@ -88,6 +98,10 @@ def main():
             for team in result['sf']: tally[team]['sf'] += 1
             for team in result['final']: tally[team]['final'] += 1
             tally[result['winner']]['winner'] += 1
+            for j, match in enumerate(result['r32_bracket']):
+                pair = tuple(sorted(match))
+                r32_slot_tally[j][pair] += 1
+
             
             # Aggregate Matchups
             process_matchups(result['r32_bracket'], result['r16'], 'r32')
@@ -113,7 +127,170 @@ def main():
             if (i + 1) % max(1, num_sims // 10) == 0:
                 print(f"Simulated {i + 1}/{num_sims}")
                 
+    
+    return tally, matchups_tally, global_run_stats, num_sims, config, r32_slot_tally, ratings
+
+def main():
+    run_simulations_for_ui(None)
+
+def run_simulations_for_ui(num_sims):
+    tally, matchups_tally, global_run_stats, num_sims, config, r32_slot_tally, ratings = run_simulations(num_sims)
+    
+    def get_code(team_name):
+        fixed_codes = {
+            'Netherlands': 'NED', 'United States': 'USA', 'England': 'ENG',
+            'South Korea': 'KOR', 'Spain': 'ESP', 'Italy': 'ITA', 'Japan': 'JPN',
+            'Morocco': 'MAR', 'Colombia': 'COL', 'France': 'FRA', 'Germany': 'GER',
+            'Portugal': 'POR', 'Belgium': 'BEL', 'Croatia': 'CRO', 'Switzerland': 'SUI',
+            'Denmark': 'DEN', 'Ivory Coast': 'CIV', 'Nigeria': 'NGA', 'Iran': 'IRN',
+            'Australia': 'AUS', 'Saudi Arabia': 'KSA', 'Canada': 'CAN', 'Peru': 'PER',
+            'Chile': 'CHI', 'Wales': 'WAL', 'Argentina': 'ARG', 'Mexico': 'MEX',
+            'Brazil': 'BRA', 'Uruguay': 'URU', 'Sweden': 'SWE', 'Senegal': 'SEN',
+            'Austria': 'AUT', 'South Africa': 'RSA', 'New Zealand': 'NZL', 
+            'DR Congo': 'DRC', 'Bosnia and Herzegovina': 'BIH', 'Cape Verde': 'CPV'
+        }
+        return fixed_codes.get(team_name, team_name[:3].upper())
+
+    def build_match(t1, t2, match_id, stage):
+        pair = tuple(sorted([t1, t2]))
+        stage_data = matchups_tally[stage].get(pair)
+        
+        count = 0
+        w1_count = 0
+        
+        if stage_data and stage_data['count'] > 0:
+            count = stage_data['count']
+            w1_count = stage_data['wins'].get(t1, 0)
+            w2_count = stage_data['wins'].get(t2, 0)
+            
+            disp_p1 = w1_count / count
+            disp_p2 = 1.0 - disp_p1
+            
+            # Empirical winner based strictly on simulation outcomes
+            w1 = w1_count >= w2_count
+        else:
+            # Fallback to an actual random simulation run on the fly!
+            from simulator import simulate_match, get_adjusted_elo
+            elo1 = ratings.get(t1, 1500)
+            elo2 = ratings.get(t2, 1500)
+            adj_elo1 = get_adjusted_elo(t1, elo1)
+            adj_elo2 = get_adjusted_elo(t2, elo2)
+            
+            winner_team, _, _, _ = simulate_match(t1, t2, adj_elo1, adj_elo2, location='USA', is_knockout=True)
+            
+            w1 = (winner_team == t1)
+            
+            # If we had to simulate it on the fly, just show 100% for the winner of this specific random match
+            disp_p1 = 1.0 if w1 else 0.0
+            disp_p2 = 0.0 if w1 else 1.0
+            
+        winner = t1 if w1 else t2
+            
+        name1 = f"{t1} ({disp_p1*100:.1f}%)"
+        name2 = f"{t2} ({disp_p2*100:.1f}%)"
+        
+        m = {
+            'id': match_id,
+            'team1': {'name': name1, 'code': get_code(t1), 'score': 'W' if w1 else 'L', 'winner': w1},
+            'team2': {'name': name2, 'code': get_code(t2), 'score': 'L' if w1 else 'W', 'winner': not w1}
+        }
+        return m, winner
+
+    c = []
+    for j in range(16):
+        if len(r32_slot_tally[j]) == 0:
+            c.append(('Unknown A', 'Unknown B'))
+        else:
+            most_common_pair = max(r32_slot_tally[j].items(), key=lambda x: x[1])[0]
+            c.append(most_common_pair)
+            
+    # Reorder matches to match the true R16 crossover format in simulator.py
+    # simulator.py maps: 73->0, 74->1, 75->2, 76->3, 77->4, 78->5, 79->6, 80->7
+    # 81->8, 82->9, 83->10, 84->11, 85->12, 86->13, 87->14, 88->15
+    left_r32 = [c[1], c[4], c[0], c[2], c[3], c[5], c[6], c[7]]
+    right_r32 = [c[10], c[11], c[8], c[9], c[12], c[14], c[13], c[15]]
+    
+    def process_side(side_r32_matches, side_prefix):
+        rounds = {}
+        r32_ui = []
+        r16_teams = []
+        
+        for i, match in enumerate(side_r32_matches):
+            m, w = build_match(match[0], match[1], f"{side_prefix}_roundOf32_{i}", 'r32')
+            r32_ui.append(m)
+            r16_teams.append(w)
+            
+        rounds['roundOf32'] = r32_ui
+        
+        r16_ui = []
+        qf_teams = []
+        r16_matchups = [(r16_teams[0], r16_teams[1]), (r16_teams[2], r16_teams[3]), (r16_teams[4], r16_teams[5]), (r16_teams[6], r16_teams[7])]
+        for i, match in enumerate(r16_matchups):
+            m, w = build_match(match[0], match[1], f"{side_prefix}_roundOf16_{i}", 'r16')
+            r16_ui.append(m)
+            qf_teams.append(w)
+            
+        rounds['roundOf16'] = r16_ui
+        
+        qf_ui = []
+        sf_teams = []
+        qf_matchups = [(qf_teams[0], qf_teams[1]), (qf_teams[2], qf_teams[3])]
+        for i, match in enumerate(qf_matchups):
+            m, w = build_match(match[0], match[1], f"{side_prefix}_quarterFinals_{i}", 'qf')
+            qf_ui.append(m)
+            sf_teams.append(w)
+            
+        rounds['quarterFinals'] = qf_ui
+        
+        sf_ui = []
+        final_teams = []
+        sf_matchups = [(sf_teams[0], sf_teams[1])]
+        for i, match in enumerate(sf_matchups):
+            m, w = build_match(match[0], match[1], f"{side_prefix}_semiFinals_{i}", 'sf')
+            sf_ui.append(m)
+            final_teams.append(w)
+            
+        rounds['semiFinals'] = sf_ui
+        
+        return rounds, final_teams[0]
+
+    left_rounds, left_finalist = process_side(left_r32, 'L')
+    right_rounds, right_finalist = process_side(right_r32, 'R')
+    
+    final_ui, _ = build_match(left_finalist, right_finalist, 'F_1', 'final')
+    
+    ui_data = {
+        'left': left_rounds,
+        'right': right_rounds,
+        'final': final_ui
+    }
+    
+    sorted_teams = sorted(tally.items(), key=lambda x: x[1].get('winner', 0), reverse=True)
+    ui_stats = []
+    for team, stats in sorted_teams:
+        ui_stats.append({
+            'Team': team,
+            'R32_%': f"{(stats.get('r32', 0)/num_sims)*100:.2f}",
+            'R16_%': f"{(stats.get('r16', 0)/num_sims)*100:.2f}",
+            'QF_%': f"{(stats.get('qf', 0)/num_sims)*100:.2f}",
+            'SF_%': f"{(stats.get('sf', 0)/num_sims)*100:.2f}",
+            'Final_%': f"{(stats.get('final', 0)/num_sims)*100:.2f}",
+            'Win_%': f"{(stats.get('winner', 0)/num_sims)*100:.2f}"
+        })
+        
+    # Save the output to disk so it loads automatically on the next page refresh
+    import os
+    import json as json_mod
+    os.makedirs('ui', exist_ok=True)
+    with open('ui/data.json', 'w') as f:
+        json_mod.dump(ui_data, f, indent=2)
+    with open('ui/stats.json', 'w') as f:
+        json_mod.dump(ui_stats, f, indent=2)
+        
     generate_reports(tally, matchups_tally, global_run_stats, num_sims, config.get('output_dir', './outputs'))
+        
+    return ui_data, ui_stats
+
 
 if __name__ == '__main__':
     # Required for Windows multiprocessing

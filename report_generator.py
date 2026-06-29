@@ -12,24 +12,14 @@ def generate_reports(results_tally, matchups_tally, global_run_stats, num_sims, 
             
     # Sort teams by win probability
     sorted_teams = sorted(results_tally.items(), key=lambda x: x[1].get('winner', 0), reverse=True)
-    
     def format_prob(prob):
-        if prob >= 99.999:
-            return ">99.9%"
-        if prob <= 0.001:
-            return "<0.1%"
-        if prob >= 99.95:
-            return ">99.9%"
-        if prob <= 0.05:
-            return "<0.1%"
-        return f"{prob:.1f}%"
+        return f"{prob:.2f}%"
 
     # Generate MD
     md_path = os.path.join(output_dir, 'simulation_report.md')
     with open(md_path, 'w', encoding='utf-8') as f:
         f.write("# 2026 World Cup Simulation Results\n\n")
         f.write(f"**Total Simulations:** {num_sims}\n\n")
-        f.write("> **Note on Probabilities:** A value of `>99.9%` indicates the team advanced in virtually every Monte Carlo simulation run, but may not have officially mathematically clinched a spot yet.\n\n")
         f.write("| Team | R32 % | R16 % | QF % | SF % | Final % | Win % |\n")
         f.write("|---|---|---|---|---|---|---|\n")
         for team, stats in sorted_teams:
