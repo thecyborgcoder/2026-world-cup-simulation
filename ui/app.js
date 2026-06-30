@@ -80,15 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         let pct = 0;
                         if (data.status === 'Fetching Data & ELO Ratings...') {
-                            pct = 2;
+                            pct = 1;
                         } else if (data.status === 'Spawning Worker Processes...') {
-                            pct = 5;
+                            pct = 3;
                         } else if (data.status === 'Aggregating Results...') {
                             pct = 99;
                         } else if (data.total > 0) {
-                            // Scale remaining 5-99 space based on true progress
+                            // Scale remaining 3-99 space based on true progress
                             const truePct = data.progress / data.total;
-                            pct = 5 + Math.floor(truePct * 94);
+                            pct = 3 + Math.floor(truePct * 96);
                         }
                         
                         if (progressBar) progressBar.style.width = `${pct}%`;
