@@ -592,5 +592,107 @@
         "score_a": 4,
         "score_b": 0,
         "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 27",
+        "group": "J",
+        "team_a": "Argentina",
+        "team_b": "Jordan",
+        "score_a": 3,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 27",
+        "group": "J",
+        "team_a": "Algeria",
+        "team_b": "Austria",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 27",
+        "group": "K",
+        "team_a": "Portugal",
+        "team_b": "Colombia",
+        "score_a": 2,
+        "score_b": 1,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 27",
+        "group": "K",
+        "team_a": "DR Congo",
+        "team_b": "Uzbekistan",
+        "score_a": 2,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 27",
+        "group": "L",
+        "team_a": "England",
+        "team_b": "Panama",
+        "score_a": 3,
+        "score_b": 0,
+        "status": "FT"
+    },
+    {
+        "date": "Sat, Jun 27",
+        "group": "L",
+        "team_a": "Croatia",
+        "team_b": "Ghana",
+        "score_a": 2,
+        "score_b": 2,
+        "status": "FT"
+    },
+    {
+        "date": "Sun, Jun 28",
+        "stage": "knockout",
+        "team_a": "Canada",
+        "team_b": "South Africa",
+        "score_a": 1,
+        "score_b": 0,
+        "status": "FT",
+        "method": "RT",
+        "winner": "Canada"
+    },
+    {
+        "date": "Mon, Jun 29",
+        "stage": "knockout",
+        "team_a": "Brazil",
+        "team_b": "Japan",
+        "score_a": 2,
+        "score_b": 1,
+        "status": "FT",
+        "method": "RT",
+        "winner": "Brazil"
+    },
+    {
+        "date": "Mon, Jun 29",
+        "stage": "knockout",
+        "team_a": "Paraguay",
+        "team_b": "Germany",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT",
+        "method": "PEN",
+        "pen_a": 4,
+        "pen_b": 3,
+        "winner": "Paraguay"
+    },
+    {
+        "date": "Mon, Jun 29",
+        "stage": "knockout",
+        "team_a": "Morocco",
+        "team_b": "Netherlands",
+        "score_a": 1,
+        "score_b": 1,
+        "status": "FT",
+        "method": "PEN",
+        "pen_a": 3,
+        "pen_b": 2,
+        "winner": "Morocco"
     }
 ]
