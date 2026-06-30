@@ -49,6 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
             runBtn.textContent = 'Running...';
             runBtn.disabled = true;
             
+            clearUI();
+            window.isSimulationActive = true;
+            window.isScrambling = true;
+            window.isTableScrambling = true;
+            window.tableLockedRows = 0;
+            window.tableLockStarted = false;
+            window.initialScrambleDone = false;
+            window.bracketLockStarted = false;
+            startScramblingInterval();
+            
             const progressWrapper = document.getElementById('progress-wrapper');
             const progressBar = document.getElementById('progress-bar');
             const progressPercentage = document.getElementById('progress-percentage');
@@ -83,9 +93,81 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         if (progressBar) progressBar.style.width = `${pct}%`;
                         if (progressPercentage) progressPercentage.textContent = `${pct}%`;
+                        
+                        if (!window.isSimulationActive) return;
+                        
+                        if (data.bracket) {
+                            updateBracketDOM(data.bracket);
+                        }
+                        
+                        if (window.isScrambling && data.progress > 0) {
+                            const bracketThreshold = Math.min(500, Math.max(1, data.total * 0.05));
+                            if (data.progress >= bracketThreshold) {
+                                if (!window.bracketLockStarted) {
+                                    window.bracketLockStarted = true;
+                                    const allRounds = ['roundOf32', 'roundOf16', 'quarterFinals', 'semiFinals', 'final'];
+                                    
+                                    window.bracketLockInterval = setInterval(() => {
+                                        if (allRounds.length > 0) {
+                                            const roundToLock = allRounds.shift();
+                                            if (roundToLock === 'final') {
+                                                const finalEl = document.querySelector('#center-final .match-card');
+                                                if (finalEl) {
+                                                    finalEl.querySelectorAll('.team').forEach(row => lockInRow(row));
+                                                }
+                                                window.isScrambling = false;
+                                                if (window.scrambleInterval) {
+                                                    clearInterval(window.scrambleInterval);
+                                                    window.scrambleInterval = null;
+                                                }
+                                                document.querySelectorAll('path.connector').forEach(p => {
+                                                    p.style.transition = 'opacity 0.3s ease';
+                                                    p.style.opacity = '1';
+                                                });
+                                            } else {
+                                                const cols = document.querySelectorAll(`.round-col.${roundToLock}`);
+                                                cols.forEach(col => {
+                                                    col.querySelectorAll('.team').forEach(row => lockInRow(row));
+                                                });
+                                            }
+                                        } else {
+                                            clearInterval(window.bracketLockInterval);
+                                            window.bracketLockInterval = null;
+                                        }
+                                    }, 1000);
+                                }
+                            }
+                        }
+                        
+                        if (window.isTableScrambling && data.progress > 0) {
+                            const threshold = Math.min(250, Math.max(1, data.total * 0.05));
+                            if (data.progress >= threshold && data.top10 && data.top10.length > 0) {
+                                if (!window.tableLockStarted) {
+                                    window.tableLockStarted = true;
+                                    window.tableLockInterval = setInterval(() => {
+                                        window.tableLockedRows++;
+                                        if (window.tableLockedRows >= 10) {
+                                            clearInterval(window.tableLockInterval);
+                                            window.isTableScrambling = false;
+                                            if (window.tableScrambleInterval) {
+                                                clearInterval(window.tableScrambleInterval);
+                                                window.tableScrambleInterval = null;
+                                            }
+                                        }
+                                        if (window.currentStatsData) {
+                                            renderStatsTable(window.currentStatsData);
+                                        }
+                                    }, 500);
+                                }
+                            }
+                        }
+                        
+                        if (data.top10 && data.top10.length > 0) {
+                            renderStatsTable(data.top10);
+                        }
                     })
                     .catch(err => console.error("Error polling progress:", err));
-            }, 300);
+            }, 200);
             
             fetch('/api/simulate', {
                 method: 'POST',
@@ -104,19 +186,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 return res.json();
             })
             .then(resData => {
-                // Fully empty the containers for initBracket to rebuild
-                document.getElementById('left-half').innerHTML = '';
-                document.getElementById('right-half').innerHTML = '';
-                document.getElementById('center-final').innerHTML = '';
-                const svg = document.getElementById('bracket-lines');
-                if (svg) svg.remove();
+                window.isSimulationActive = false;
+                window.isTableScrambling = false;
+                if (window.tableScrambleInterval) {
+                    clearInterval(window.tableScrambleInterval);
+                    window.tableScrambleInterval = null;
+                }
+                if (window.tableLockInterval) {
+                    clearInterval(window.tableLockInterval);
+                    window.tableLockInterval = null;
+                }
                 
-                initBracket(resData.data);
+                window.isScrambling = false;
+                if (window.scrambleInterval) {
+                    clearInterval(window.scrambleInterval);
+                    window.scrambleInterval = null;
+                }
+                if (window.bracketLockInterval) {
+                    clearInterval(window.bracketLockInterval);
+                    window.bracketLockInterval = null;
+                }
+                
+                updateBracketDOM(resData.data);
+                
+                document.querySelectorAll('.team.scrambling').forEach(row => {
+                    lockInRow(row);
+                });
+                
+                updateLayout(resData.data);
+                
+                document.querySelectorAll('path.connector').forEach(p => {
+                    p.style.transition = 'opacity 0.3s ease';
+                    p.style.opacity = '1';
+                });
+                
                 renderStatsTable(resData.stats);
             })
             .catch(err => {
                 console.error("Simulation error:", err);
                 alert("Failed to run simulation. Is server.py running?");
+                window.isSimulationActive = false;
+                window.isScrambling = false;
+                if (window.scrambleInterval) {
+                    clearInterval(window.scrambleInterval);
+                    window.scrambleInterval = null;
+                }
+                if (window.bracketLockInterval) {
+                    clearInterval(window.bracketLockInterval);
+                    window.bracketLockInterval = null;
+                }
+                window.isTableScrambling = false;
+                if (window.tableScrambleInterval) {
+                    clearInterval(window.tableScrambleInterval);
+                    window.tableScrambleInterval = null;
+                }
+                if (window.tableLockInterval) {
+                    clearInterval(window.tableLockInterval);
+                    window.tableLockInterval = null;
+                }
             })
             .finally(() => {
                 runBtn.textContent = originalText;
@@ -300,43 +427,59 @@ function createMatchCard(match) {
 function createTeamRow(team) {
     const row = document.createElement('div');
     row.classList.add('team');
-    if (team.winner) {
-        row.classList.add('winner');
+    
+    row.dataset.realWinner = team.winner ? "true" : "false";
+    row.dataset.realCode = team.code;
+    row.dataset.realName = team.name;
+    row.dataset.realScore = team.score;
+    row.dataset.realPenalties = team.penalties !== undefined ? team.penalties : '';
+
+    if (!window.isScrambling) {
+        if (team.winner) {
+            row.classList.add('winner');
+        } else {
+            row.classList.add('loser');
+        }
     } else {
-        row.classList.add('loser');
+        row.classList.add('scrambling');
     }
+    
     row.dataset.teamCode = team.code;
 
     const flagImg = document.createElement('img');
     flagImg.classList.add('team-flag');
     
-    // Extract base name if it has probabilities (e.g. "France (55.4%)" -> "France")
-    let baseName = team.name;
-    if (baseName.includes(' (')) {
-        baseName = baseName.split(' (')[0];
-    }
-    
-    const isoCode = teamToIso[baseName] || teamToIso[team.code];
-    if (isoCode) {
-        flagImg.src = `https://flagcdn.com/24x18/${isoCode}.png`;
-        flagImg.alt = baseName;
-    } else {
-        flagImg.style.backgroundColor = '#333';
-    }
-    
     const name = document.createElement('div');
     name.classList.add('team-name');
-    name.textContent = team.name;
 
     const penalties = document.createElement('div');
     penalties.classList.add('team-penalties');
-    if (team.penalties !== undefined) {
-        penalties.textContent = `(${team.penalties})`;
-    }
 
     const score = document.createElement('div');
     score.classList.add('team-score');
-    score.textContent = team.score;
+
+    if (!window.isScrambling) {
+        let baseName = team.name;
+        if (baseName.includes(' (')) {
+            baseName = baseName.split(' (')[0];
+        }
+        
+        const isoCode = teamToIso[baseName] || teamToIso[team.code];
+        if (isoCode) {
+            flagImg.src = `https://flagcdn.com/24x18/${isoCode}.png`;
+            flagImg.alt = baseName;
+        } else {
+            flagImg.style.backgroundColor = '#333';
+        }
+        
+        name.textContent = team.name;
+
+        if (team.penalties !== undefined) {
+            penalties.textContent = `(${team.penalties})`;
+        }
+
+        score.textContent = team.score;
+    }
 
     row.appendChild(flagImg);
     row.appendChild(name);
@@ -398,6 +541,9 @@ function drawLines(data) {
         path.setAttribute("d", d);
         path.classList.add("connector");
         path.dataset.teamCode = teamCode; // Associate the edge with the specific team
+        if (window.isScrambling) {
+            path.style.opacity = '0';
+        }
         svg.appendChild(path);
     };
 
@@ -495,52 +641,235 @@ function clearHighlights() {
 }
 
 let isStatsExpanded = false;
+let isStatsTableListenerAttached = false;
 
 function renderStatsTable(stats) {
     const tbody = document.getElementById('stats-body');
     const btn = document.getElementById('expand-stats-btn');
     if (!tbody || !btn) return;
     
+    window.currentStatsData = stats;
+    window.initialScrambleDone = true;
+    
     const renderRows = () => {
+        const statsData = window.currentStatsData;
         tbody.innerHTML = '';
-        const limit = isStatsExpanded ? stats.length : 10;
-        const visibleStats = stats.slice(0, limit);
+        const limit = isStatsExpanded ? statsData.length : Math.min(10, statsData.length);
+        const visibleStats = statsData.slice(0, limit);
         
         visibleStats.forEach((row, index) => {
             const tr = document.createElement('tr');
             
-            const tdRank = document.createElement('td');
-            tdRank.classList.add('rank-col');
-            tdRank.textContent = index + 1;
-            tr.appendChild(tdRank);
-            
-            const tdTeam = document.createElement('td');
-            tdTeam.textContent = row['Team'];
-            tr.appendChild(tdTeam);
-            
-            const keys = ['R32_%', 'R16_%', 'QF_%', 'SF_%', 'Final_%', 'Win_%'];
-            keys.forEach(key => {
-                const td = document.createElement('td');
-                td.textContent = row[key] ? row[key] + '%' : '0.00%';
-                tr.appendChild(td);
-            });
+            if (window.isTableScrambling && index >= window.tableLockedRows) {
+                tr.classList.add('table-row-scrambling');
+                const tdRank = document.createElement('td');
+                tdRank.classList.add('rank-col');
+                tdRank.textContent = index + 1;
+                tr.appendChild(tdRank);
+                for(let i=0; i<7; i++) {
+                    tr.appendChild(document.createElement('td'));
+                }
+            } else {
+                const tdRank = document.createElement('td');
+                tdRank.classList.add('rank-col');
+                tdRank.textContent = index + 1;
+                tr.appendChild(tdRank);
+                
+                const tdTeam = document.createElement('td');
+                tdTeam.textContent = row['Team'];
+                tr.appendChild(tdTeam);
+                
+                const keys = ['R32_%', 'R16_%', 'QF_%', 'SF_%', 'Final_%', 'Win_%'];
+                keys.forEach(key => {
+                    const td = document.createElement('td');
+                    td.textContent = row[key] ? row[key] + '%' : '0.00%';
+                    tr.appendChild(td);
+                });
+            }
             
             tbody.appendChild(tr);
         });
         
-        btn.textContent = isStatsExpanded ? 'Show Top 10' : 'Show All Teams';
+        if (statsData.length <= 10) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.textContent = 'Simulating...';
+        } else {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            btn.textContent = isStatsExpanded ? 'Show Top 10' : 'Show All Teams';
+        }
     };
     
-    btn.addEventListener('click', () => {
-        isStatsExpanded = !isStatsExpanded;
-        renderRows();
-        
-        // Wait a tick for layout, then re-trigger bracket line update
-        // since changing table height shifts the bracket container
-        setTimeout(() => {
-            window.dispatchEvent(new Event('resize'));
-        }, 50);
-    });
+    if (!isStatsTableListenerAttached) {
+        btn.addEventListener('click', () => {
+            isStatsExpanded = !isStatsExpanded;
+            renderRows();
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 50);
+        });
+        isStatsTableListenerAttached = true;
+    }
     
     renderRows();
+}
+
+window.isScrambling = false;
+window.scrambleInterval = null;
+
+function startScramblingInterval() {
+    if (window.scrambleInterval) return;
+    const allIsoKeys = Object.keys(teamToIso);
+    
+    document.querySelectorAll('.team').forEach(row => {
+        row.classList.add('scrambling');
+        row.classList.remove('winner', 'loser');
+        const score = row.querySelector('.team-score');
+        if (score) score.textContent = '';
+        const pen = row.querySelector('.team-penalties');
+        if (pen) pen.textContent = '';
+    });
+
+    window.scrambleInterval = setInterval(() => {
+        document.querySelectorAll('.team.scrambling').forEach(team => {
+            const name = allIsoKeys[Math.floor(Math.random() * allIsoKeys.length)];
+            const isoCode = teamToIso[name];
+            
+            const flagImg = team.querySelector('.team-flag');
+            if (flagImg) {
+                flagImg.src = `https://flagcdn.com/24x18/${isoCode}.png`;
+                flagImg.style.visibility = 'visible';
+                flagImg.style.backgroundColor = '';
+            }
+            
+            const nameEl = team.querySelector('.team-name');
+            if (nameEl) nameEl.innerHTML = name;
+        });
+    }, 50);
+
+    window.tableScrambleInterval = setInterval(() => {
+        if (!window.isTableScrambling) return;
+        
+        const scramblingRows = document.querySelectorAll('tr.table-row-scrambling');
+        if (scramblingRows.length > 0) {
+            scramblingRows.forEach((tr, idx) => {
+                const name = allIsoKeys[Math.floor(Math.random() * allIsoKeys.length)];
+                const tds = tr.querySelectorAll('td');
+                if (tds.length >= 8) {
+                    tds[1].textContent = name;
+                    tds[2].textContent = (Math.random() * 100).toFixed(2) + '%';
+                    tds[3].textContent = (Math.random() * 80).toFixed(2) + '%';
+                    tds[4].textContent = (Math.random() * 60).toFixed(2) + '%';
+                    tds[5].textContent = (Math.random() * 40).toFixed(2) + '%';
+                    tds[6].textContent = (Math.random() * 20).toFixed(2) + '%';
+                    tds[7].textContent = (Math.random() * 10).toFixed(2) + '%';
+                }
+            });
+        } else if (!window.initialScrambleDone) {
+            const tbody = document.getElementById('stats-body');
+            if (!tbody) return;
+            
+            let html = '';
+            for (let i = 0; i < 10; i++) {
+                const name = allIsoKeys[Math.floor(Math.random() * allIsoKeys.length)];
+                html += `<tr class="table-row-scrambling">
+                    <td class="rank-col">${i + 1}</td>
+                    <td>${name}</td>
+                    <td>${(Math.random() * 100).toFixed(2)}%</td>
+                    <td>${(Math.random() * 80).toFixed(2)}%</td>
+                    <td>${(Math.random() * 60).toFixed(2)}%</td>
+                    <td>${(Math.random() * 40).toFixed(2)}%</td>
+                    <td>${(Math.random() * 20).toFixed(2)}%</td>
+                    <td>${(Math.random() * 10).toFixed(2)}%</td>
+                </tr>`;
+            }
+            tbody.innerHTML = html;
+            const btn = document.getElementById('expand-stats-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+                btn.textContent = 'Simulating...';
+            }
+        }
+    }, 50);
+}
+
+function lockInRow(row) {
+    row.classList.remove('scrambling');
+    if (row.dataset.realWinner === "true") row.classList.add('winner');
+    else row.classList.add('loser');
+    
+    const teamName = row.dataset.realName;
+    let baseName = teamName;
+    if (baseName.includes(' (')) baseName = baseName.split(' (')[0];
+    const isoCode = teamToIso[baseName] || teamToIso[row.dataset.realCode];
+    
+    const flagImg = row.querySelector('.team-flag');
+    if (flagImg) {
+        if (isoCode) {
+            flagImg.src = `https://flagcdn.com/24x18/${isoCode}.png`;
+            flagImg.alt = baseName;
+            flagImg.style.backgroundColor = '';
+            flagImg.style.visibility = 'visible';
+        } else {
+            flagImg.removeAttribute('src');
+            flagImg.style.backgroundColor = '#333';
+            flagImg.style.visibility = 'visible';
+        }
+    }
+    
+    const nameEl = row.querySelector('.team-name');
+    if (nameEl) nameEl.textContent = teamName;
+    const penEl = row.querySelector('.team-penalties');
+    const pen = row.dataset.realPenalties;
+    if (penEl) penEl.textContent = pen ? `(${pen})` : '';
+    const scoreEl = row.querySelector('.team-score');
+    if (scoreEl) scoreEl.textContent = row.dataset.realScore;
+}
+
+function updateBracketDOM(bracketData) {
+    const rounds = ['roundOf32', 'roundOf16', 'quarterFinals', 'semiFinals', 'final'];
+    
+    rounds.forEach(round => {
+        let matches = [];
+        if (round === 'final') {
+            if (bracketData.final) matches.push(bracketData.final);
+        } else {
+            if (bracketData.left && bracketData.left[round]) matches = matches.concat(bracketData.left[round]);
+            if (bracketData.right && bracketData.right[round]) matches = matches.concat(bracketData.right[round]);
+        }
+        
+        matches.forEach(match => {
+            const matchEl = document.getElementById(match.id);
+            if (matchEl) {
+                const t1Row = matchEl.children[0];
+                if (t1Row) {
+                    t1Row.dataset.realWinner = match.team1.winner ? "true" : "false";
+                    t1Row.dataset.realCode = match.team1.code;
+                    t1Row.dataset.teamCode = match.team1.code;
+                    t1Row.dataset.realName = match.team1.name;
+                    t1Row.dataset.realScore = match.team1.score;
+                    if (!t1Row.classList.contains('scrambling')) {
+                        lockInRow(t1Row);
+                    }
+                }
+                
+                const t2Row = matchEl.children[1];
+                if (t2Row) {
+                    t2Row.dataset.realWinner = match.team2.winner ? "true" : "false";
+                    t2Row.dataset.realCode = match.team2.code;
+                    t2Row.dataset.teamCode = match.team2.code;
+                    t2Row.dataset.realName = match.team2.name;
+                    t2Row.dataset.realScore = match.team2.score;
+                    if (!t2Row.classList.contains('scrambling')) {
+                        lockInRow(t2Row);
+                    }
+                }
+            }
+        });
+    });
 }

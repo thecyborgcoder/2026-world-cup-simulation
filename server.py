@@ -19,7 +19,9 @@ class WorldCupHandler(SimpleHTTPRequestHandler):
             progress_data = {
                 'status': main.current_status,
                 'progress': main.current_progress,
-                'total': main.total_sims
+                'total': main.total_sims,
+                'top10': main.current_top10,
+                'bracket': main.current_bracket
             }
             self.wfile.write(json.dumps(progress_data).encode('utf-8'))
         else:
