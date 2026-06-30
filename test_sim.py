@@ -129,6 +129,9 @@ def main():
     
     r32_bracket = build_knockout_bracket(groups_standings, group_stats, ratings)
     
+    ko_matches = [m for m in matches if m.get('stage') == 'knockout' or not m.get('group')]
+    historical_ko = {frozenset([m['team_a'], m['team_b']]): m for m in ko_matches}
+
     def run_ko_round(bracket, start_match_num, round_name):
         log(f"### {round_name.upper()}")
         next_round = []
@@ -142,7 +145,27 @@ def main():
             adj_elo_b = get_adjusted_elo(tb, elo_b, match_num)
             pw, pd, pl = get_match_probabilities(adj_elo_a, adj_elo_b)
             
-            winner, method, ga, gb = simulate_match(ta, tb, adj_elo_a, adj_elo_b, location=loc, is_knockout=True)
+            pair = frozenset([ta, tb])
+            if pair in historical_ko:
+                hm = historical_ko[pair]
+                ga = hm['score_a'] if hm['team_a'] == ta else hm['score_b']
+                gb = hm['score_b'] if hm['team_a'] == ta else hm['score_a']
+                if ga > gb:
+                    winner = ta
+                    method = hm.get('method', 'RT')
+                elif gb > ga:
+                    winner = tb
+                    method = hm.get('method', 'RT')
+                else:
+                    method = 'PEN'
+                    if 'pen_a' in hm and 'pen_b' in hm:
+                        pen_a = hm['pen_a'] if hm['team_a'] == ta else hm['pen_b']
+                        pen_b = hm['pen_b'] if hm['team_a'] == ta else hm['pen_a']
+                        winner = ta if pen_a > pen_b else tb
+                    else:
+                        winner = hm.get('winner', ta)
+            else:
+                winner, method, ga, gb = simulate_match(ta, tb, adj_elo_a, adj_elo_b, location=loc, is_knockout=True)
             
             log(f"**Match {match_num} @ {loc}: {ta} vs {tb}**")
             log(f"   90m Probs: {ta} {pw*100:.1f}% | Draw {pd*100:.1f}% | {tb} {pl*100:.1f}%")
@@ -213,8 +236,8 @@ def main():
         else:
             draws += 1
             
-    win_pct = (team_a_wins + team_b_wins) / len(group_matches) * 100
-    draw_pct = draws / len(group_matches) * 100
+    win_pct = (team_a_wins + team_b_wins) / max(1, len(group_matches)) * 100
+    draw_pct = draws / max(1, len(group_matches)) * 100
     
     decisive_games = team_a_wins + team_b_wins
     avg_winner_goals = winner_goals / max(1, decisive_games) if decisive_games > 0 else 0
@@ -234,8 +257,8 @@ def main():
     log(f"- **Avg Goals per Match**: {avg_goals:.2f}")
     log(f"- **Matches Ending in a Draw**: {draws} ({draw_pct:.1f}%)")
     log(f"- **Matches Ending with a Winner**: {decisive_games} ({win_pct:.1f}%)")
-    log(f"  - Team A Wins: {team_a_wins} ({team_a_wins/len(group_matches)*100:.1f}%)")
-    log(f"  - Team B Wins: {team_b_wins} ({team_b_wins/len(group_matches)*100:.1f}%)")
+    log(f"  - Team A Wins: {team_a_wins} ({team_a_wins/max(1, len(group_matches))*100:.1f}%)")
+    log(f"  - Team B Wins: {team_b_wins} ({team_b_wins/max(1, len(group_matches))*100:.1f}%)")
     log(f"- **Avg Goals by Winning Team**: {avg_winner_goals:.2f}")
     log(f"- **Avg Goals by Losing Team**: {avg_loser_goals:.2f}")
     

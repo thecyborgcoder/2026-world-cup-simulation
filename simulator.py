@@ -284,7 +284,9 @@ def build_knockout_bracket(groups_standings, group_stats, ratings):
     
     return [r32[i] for i in range(73, 89)]
 
-def simulate_knockout(bracket, ratings, start_match_num):
+def simulate_knockout(bracket, ratings, start_match_num, historical_ko=None):
+    if historical_ko is None:
+        historical_ko = {}
     next_round = []
     match_data = []
     for i, match in enumerate(bracket):
@@ -297,7 +299,28 @@ def simulate_knockout(bracket, ratings, start_match_num):
         adj_elo_a = get_adjusted_elo(ta, elo_a, match_num)
         adj_elo_b = get_adjusted_elo(tb, elo_b, match_num)
         
-        winner, method, ga, gb = simulate_match(ta, tb, adj_elo_a, adj_elo_b, location=loc, is_knockout=True)
+        pair = frozenset([ta, tb])
+        if pair in historical_ko:
+            hm = historical_ko[pair]
+            ga = hm['score_a'] if hm['team_a'] == ta else hm['score_b']
+            gb = hm['score_b'] if hm['team_a'] == ta else hm['score_a']
+            if ga > gb:
+                winner = ta
+                method = hm.get('method', 'RT')
+            elif gb > ga:
+                winner = tb
+                method = hm.get('method', 'RT')
+            else:
+                method = 'PEN'
+                if 'pen_a' in hm and 'pen_b' in hm:
+                    pen_a = hm['pen_a'] if hm['team_a'] == ta else hm['pen_b']
+                    pen_b = hm['pen_b'] if hm['team_a'] == ta else hm['pen_a']
+                    winner = ta if pen_a > pen_b else tb
+                else:
+                    winner = hm.get('winner', ta)
+        else:
+            winner, method, ga, gb = simulate_match(ta, tb, adj_elo_a, adj_elo_b, location=loc, is_knockout=True)
+            
         next_round.append(winner)
         match_data.append({'ta': ta, 'tb': tb, 'winner': winner, 'method': method, 'is_knockout': True, 'elo_a': adj_elo_a, 'elo_b': adj_elo_b, 'sa': ga, 'sb': gb})
     return next_round, match_data
@@ -314,8 +337,11 @@ def run_one_simulation(teams, matches_played, ratings):
         group_stats[group_name] = stats
         all_matches.extend(match_results)
         
+    ko_matches = [m for m in matches_played if m.get('stage') == 'knockout' or not m.get('group')]
+    historical_ko = {frozenset([m['team_a'], m['team_b']]): m for m in ko_matches}
+        
     r32_bracket = build_knockout_bracket(groups_standings, group_stats, ratings)
-    r32_teams, r32_data = simulate_knockout(r32_bracket, ratings, 73)
+    r32_teams, r32_data = simulate_knockout(r32_bracket, ratings, 73, historical_ko)
     all_matches.extend(r32_data)
     
     # R16 Mapping
@@ -324,7 +350,7 @@ def run_one_simulation(teams, matches_played, ratings):
         (w[74], w[77]), (w[73], w[75]), (w[76], w[78]), (w[79], w[80]),
         (w[83], w[84]), (w[81], w[82]), (w[85], w[87]), (w[86], w[88])
     ]
-    r16_teams, r16_data = simulate_knockout(r16_bracket, ratings, 89)
+    r16_teams, r16_data = simulate_knockout(r16_bracket, ratings, 89, historical_ko)
     all_matches.extend(r16_data)
     
     # QF Mapping
@@ -333,7 +359,7 @@ def run_one_simulation(teams, matches_played, ratings):
         (w16[89], w16[90]), (w16[91], w16[92]), 
         (w16[93], w16[94]), (w16[95], w16[96])
     ]
-    qf_teams, qf_data = simulate_knockout(qf_bracket, ratings, 97)
+    qf_teams, qf_data = simulate_knockout(qf_bracket, ratings, 97, historical_ko)
     all_matches.extend(qf_data)
     
     # SF Mapping
@@ -341,7 +367,7 @@ def run_one_simulation(teams, matches_played, ratings):
     sf_bracket = [
         (wqf[97], wqf[98]), (wqf[99], wqf[100])
     ]
-    sf_teams, sf_data = simulate_knockout(sf_bracket, ratings, 101)
+    sf_teams, sf_data = simulate_knockout(sf_bracket, ratings, 101, historical_ko)
     all_matches.extend(sf_data)
     
     # Final & 3rd Place Match
@@ -349,11 +375,11 @@ def run_one_simulation(teams, matches_played, ratings):
     lsf = {101 + i: sf_bracket[i][0] if winner == sf_bracket[i][1] else sf_bracket[i][1] for i, winner in enumerate(sf_teams)}
     
     third_place_bracket = [(lsf[101], lsf[102])]
-    third_place_teams, third_place_data = simulate_knockout(third_place_bracket, ratings, 103)
+    third_place_teams, third_place_data = simulate_knockout(third_place_bracket, ratings, 103, historical_ko)
     all_matches.extend(third_place_data)
     
     final_bracket = [(wsf[101], wsf[102])]
-    final_teams, final_data = simulate_knockout(final_bracket, ratings, 104)
+    final_teams, final_data = simulate_knockout(final_bracket, ratings, 104, historical_ko)
     all_matches.extend(final_data)
     
     def get_tier(elo):
