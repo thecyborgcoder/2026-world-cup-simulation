@@ -49,10 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
             runBtn.textContent = 'Running...';
             runBtn.disabled = true;
             
+            const simCountInt = parseInt(simCount, 10);
+            const isSmallBatch = simCountInt < 10;
+            
             clearUI();
             window.isSimulationActive = true;
             window.isScrambling = true;
-            window.isTableScrambling = true;
+            window.isTableScrambling = !isSmallBatch;
             window.tableLockedRows = 0;
             window.tableLockStarted = false;
             window.initialScrambleDone = false;
@@ -64,15 +67,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const progressPercentage = document.getElementById('progress-percentage');
             const progressStatus = document.getElementById('progress-status');
             
-            if (progressWrapper) {
+            if (progressWrapper && !isSmallBatch) {
                 progressWrapper.style.display = 'block';
                 progressBar.style.width = '0%';
                 progressPercentage.textContent = '0%';
                 if (progressStatus) progressStatus.textContent = 'Starting...';
+            } else if (progressWrapper) {
+                progressWrapper.style.display = 'none';
             }
             
             // Poll for progress
-            const pollInterval = setInterval(() => {
+            let pollInterval = null;
+            if (!isSmallBatch) {
+                pollInterval = setInterval(() => {
                 fetch('/api/progress')
                     .then(res => res.json())
                     .then(data => {
@@ -167,20 +174,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     })
                     .catch(err => console.error("Error polling progress:", err));
-            }, 200);
+                }, 200);
+            }
             
             fetch('/api/simulate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ simulations: parseInt(simCount, 10) })
+                body: JSON.stringify({ simulations: simCountInt })
             })
             .then(res => {
-                clearInterval(pollInterval);
-                if (progressBar) progressBar.style.width = '100%';
-                if (progressPercentage) progressPercentage.textContent = '100%';
-                setTimeout(() => {
-                    if (progressWrapper) progressWrapper.style.display = 'none';
-                }, 500);
+                if (pollInterval) clearInterval(pollInterval);
+                if (progressBar && !isSmallBatch) progressBar.style.width = '100%';
+                if (progressPercentage && !isSmallBatch) progressPercentage.textContent = '100%';
+                if (!isSmallBatch) {
+                    setTimeout(() => {
+                        if (progressWrapper) progressWrapper.style.display = 'none';
+                    }, 500);
+                }
                 
                 if (!res.ok) throw new Error('Simulation failed on server.');
                 return res.json();
@@ -196,29 +206,76 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(window.tableLockInterval);
                     window.tableLockInterval = null;
                 }
-                
-                window.isScrambling = false;
-                if (window.scrambleInterval) {
-                    clearInterval(window.scrambleInterval);
-                    window.scrambleInterval = null;
-                }
-                if (window.bracketLockInterval) {
-                    clearInterval(window.bracketLockInterval);
-                    window.bracketLockInterval = null;
-                }
-                
                 updateBracketDOM(resData.data);
-                
-                document.querySelectorAll('.team.scrambling').forEach(row => {
-                    lockInRow(row);
-                });
-                
                 updateLayout(resData.data);
                 
-                document.querySelectorAll('path.connector').forEach(p => {
-                    p.style.transition = 'opacity 0.3s ease';
-                    p.style.opacity = '1';
-                });
+                if (isSmallBatch) {
+                    const allRounds = ['roundOf32', 'roundOf16', 'quarterFinals', 'semiFinals', 'final'];
+                    let roundIndex = 0;
+                    
+                    function lockNextRound() {
+                        if (roundIndex >= allRounds.length) {
+                            window.isScrambling = false;
+                            if (window.scrambleInterval) {
+                                clearInterval(window.scrambleInterval);
+                                window.scrambleInterval = null;
+                            }
+                            document.querySelectorAll('path.connector').forEach(p => {
+                                p.style.transition = 'opacity 0.3s ease';
+                                p.style.opacity = '1';
+                            });
+                            return;
+                        }
+                        
+                        const roundToLock = allRounds[roundIndex];
+                        roundIndex++;
+                        
+                        let teamRows = [];
+                        if (roundToLock === 'final') {
+                            const finalEl = document.querySelector('#center-final .match-card');
+                            if (finalEl) {
+                                teamRows = Array.from(finalEl.querySelectorAll('.team'));
+                            }
+                        } else {
+                            const cols = document.querySelectorAll(`.round-col.${roundToLock}`);
+                            cols.forEach(col => {
+                                teamRows = teamRows.concat(Array.from(col.querySelectorAll('.team')));
+                            });
+                        }
+                        
+                        for (let i = 0; i < teamRows.length; i += 2) {
+                            const offset = Math.random() * 100;
+                            setTimeout(() => {
+                                if (teamRows[i]) lockInRow(teamRows[i]);
+                                if (teamRows[i+1]) lockInRow(teamRows[i+1]);
+                            }, offset);
+                        }
+                        
+                        setTimeout(lockNextRound, 300);
+                    }
+                    
+                    lockNextRound();
+                    
+                } else {
+                    window.isScrambling = false;
+                    if (window.scrambleInterval) {
+                        clearInterval(window.scrambleInterval);
+                        window.scrambleInterval = null;
+                    }
+                    if (window.bracketLockInterval) {
+                        clearInterval(window.bracketLockInterval);
+                        window.bracketLockInterval = null;
+                    }
+                    
+                    document.querySelectorAll('.team.scrambling').forEach(row => {
+                        lockInRow(row);
+                    });
+                    
+                    document.querySelectorAll('path.connector').forEach(p => {
+                        p.style.transition = 'opacity 0.3s ease';
+                        p.style.opacity = '1';
+                    });
+                }
                 
                 renderStatsTable(resData.stats);
             })
@@ -282,12 +339,12 @@ function clearUI() {
         if (score) score.innerHTML = '&nbsp;'; // &nbsp; preserves line-height
     });
     
-    // Dim the connecting lines but keep them visible
+    // Keep the connecting lines visible
     const paths = document.querySelectorAll('.connector');
     paths.forEach(p => {
         p.classList.remove('highlight');
         p.dataset.teamCode = '';
-        p.style.opacity = '0.1';
+        p.style.opacity = '1';
     });
     
     isStatsExpanded = false;
@@ -361,9 +418,7 @@ function updateLayout(data) {
     
     const scale = Math.min(scaleX, scaleY) * 0.98; // 2% margin
     
-    if (scale < 1) {
-        container.style.transform = `scale(${scale})`;
-    }
+    container.style.transform = `scale(${scale})`;
 }
 
 function renderSide(sideData, containerId, isLeft) {
@@ -541,9 +596,6 @@ function drawLines(data) {
         path.setAttribute("d", d);
         path.classList.add("connector");
         path.dataset.teamCode = teamCode; // Associate the edge with the specific team
-        if (window.isScrambling) {
-            path.style.opacity = '0';
-        }
         svg.appendChild(path);
     };
 

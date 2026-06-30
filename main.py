@@ -18,7 +18,7 @@ total_sims = 0
 current_top10 = []
 current_bracket = None
 
-def generate_ui_bracket(matchups_tally, r32_slot_tally, ratings):
+def generate_ui_bracket(matchups_tally, r32_slot_tally, ratings, use_elo_probs=False):
     def get_code(team_name):
         fixed_codes = {
             'Netherlands': 'NED', 'United States': 'USA', 'England': 'ENG',
@@ -38,17 +38,11 @@ def generate_ui_bracket(matchups_tally, r32_slot_tally, ratings):
         pair = tuple(sorted([t1, t2]))
         stage_data = matchups_tally[stage].get(pair)
         
-        count = 0
-        w1_count = 0
+        count = stage_data['count'] if stage_data else 0
+        w1_count = stage_data['wins'].get(t1, 0) if stage_data else 0
+        w2_count = stage_data['wins'].get(t2, 0) if stage_data else 0
         
-        if stage_data and stage_data['count'] > 0:
-            count = stage_data['count']
-            w1_count = stage_data['wins'].get(t1, 0)
-            w2_count = stage_data['wins'].get(t2, 0)
-            
-            disp_p1 = w1_count / count
-            disp_p2 = 1.0 - disp_p1
-            
+        if count > 0:
             w1 = w1_count >= w2_count
         else:
             from simulator import simulate_match, get_adjusted_elo
@@ -58,11 +52,23 @@ def generate_ui_bracket(matchups_tally, r32_slot_tally, ratings):
             adj_elo2 = get_adjusted_elo(t2, elo2)
             
             winner_team, _, _, _ = simulate_match(t1, t2, adj_elo1, adj_elo2, location='USA', is_knockout=True)
-            
             w1 = (winner_team == t1)
             
-            disp_p1 = 1.0 if w1 else 0.0
-            disp_p2 = 0.0 if w1 else 1.0
+        if use_elo_probs:
+            from simulator import get_adjusted_elo
+            elo1 = ratings.get(t1, 1500)
+            elo2 = ratings.get(t2, 1500)
+            adj_elo1 = get_adjusted_elo(t1, elo1)
+            adj_elo2 = get_adjusted_elo(t2, elo2)
+            disp_p1 = 1 / (1 + 10 ** ((adj_elo2 - adj_elo1) / 400))
+            disp_p2 = 1.0 - disp_p1
+        else:
+            if count > 0:
+                disp_p1 = w1_count / count
+                disp_p2 = 1.0 - disp_p1
+            else:
+                disp_p1 = 1.0 if w1 else 0.0
+                disp_p2 = 0.0 if w1 else 1.0
             
         winner = t1 if w1 else t2
             
@@ -231,65 +237,77 @@ def run_simulations(override_num_sims=None):
     current_status = "Spawning Worker Processes..."
     import time
     
-    # Spawn pool and execute simulations in parallel
-    with multiprocessing.Pool(initializer=init_worker, initargs=(teams, matches, ratings)) as pool:
-        for i, result in enumerate(pool.imap_unordered(worker_sim, range(num_sims), chunksize=chunk_size)):
-            for team in result['r32']: tally[team]['r32'] += 1
-            for team in result['r16']: tally[team]['r16'] += 1
-            for team in result['qf']: tally[team]['qf'] += 1
-            for team in result['sf']: tally[team]['sf'] += 1
-            for team in result['final']: tally[team]['final'] += 1
-            tally[result['winner']]['winner'] += 1
-            for j, match in enumerate(result['r32_bracket']):
-                pair = tuple(sorted(match))
-                r32_slot_tally[j][pair] += 1
+    def process_result(i, result):
+        global current_progress, current_status, current_top10, current_bracket
+        for team in result['r32']: tally[team]['r32'] += 1
+        for team in result['r16']: tally[team]['r16'] += 1
+        for team in result['qf']: tally[team]['qf'] += 1
+        for team in result['sf']: tally[team]['sf'] += 1
+        for team in result['final']: tally[team]['final'] += 1
+        tally[result['winner']]['winner'] += 1
+        for j, match in enumerate(result['r32_bracket']):
+            pair = tuple(sorted(match))
+            r32_slot_tally[j][pair] += 1
 
+        
+        # Aggregate Matchups
+        process_matchups(result['r32_bracket'], result['r16'], 'r32')
+        process_matchups(result['r16_bracket'], result['qf'], 'r16')
+        process_matchups(result['qf_bracket'], result['sf'], 'qf')
+        process_matchups(result['sf_bracket'], result['final'], 'sf')
+        process_matchups(result['final_bracket'], [result['winner']], 'final')
+        
+        # Aggregate run stats
+        rs = result['run_stats']
+        for k in ['group_games', 'group_goals', 'group_draws', 'team_a_wins', 'team_b_wins',
+                  'winner_goals', 'loser_goals', 'ko_games', 'ko_goals', 'ko_winner_goals', 'ko_loser_goals', 'rt_wins', 'et_wins', 'pen_wins']:
+            global_run_stats[k] += rs[k]
             
-            # Aggregate Matchups
-            process_matchups(result['r32_bracket'], result['r16'], 'r32')
-            process_matchups(result['r16_bracket'], result['qf'], 'r16')
-            process_matchups(result['qf_bracket'], result['sf'], 'qf')
-            process_matchups(result['sf_bracket'], result['final'], 'sf')
-            process_matchups(result['final_bracket'], [result['winner']], 'final')
-            
-            # Aggregate run stats
-            rs = result['run_stats']
-            for k in ['group_games', 'group_goals', 'group_draws', 'team_a_wins', 'team_b_wins',
-                      'winner_goals', 'loser_goals', 'ko_games', 'ko_goals', 'ko_winner_goals', 'ko_loser_goals', 'rt_wins', 'et_wins', 'pen_wins']:
-                global_run_stats[k] += rs[k]
+        for b in rs['elo_diff']:
+            for k in rs['elo_diff'][b]:
+                global_run_stats['elo_diff'][b][k] += rs['elo_diff'][b][k]
                 
-            for b in rs['elo_diff']:
-                for k in rs['elo_diff'][b]:
-                    global_run_stats['elo_diff'][b][k] += rs['elo_diff'][b][k]
-                    
-            for t in rs['elo_tier']:
-                for k in rs['elo_tier'][t]:
-                    global_run_stats['elo_tier'][t][k] += rs['elo_tier'][t][k]
-            
-            current_status = "Simulating..."
-            current_progress = i + 1
-            
-            if (i + 1) % 100 == 0 or (i + 1) == num_sims:
-                sorted_teams = sorted(tally.items(), key=lambda x: x[1].get('winner', 0), reverse=True)[:10]
-                temp_top10 = []
-                for team, stats in sorted_teams:
-                    temp_top10.append({
-                        'Team': team,
-                        'R32_%': f"{(stats.get('r32', 0)/(i+1))*100:.2f}",
-                        'R16_%': f"{(stats.get('r16', 0)/(i+1))*100:.2f}",
-                        'QF_%': f"{(stats.get('qf', 0)/(i+1))*100:.2f}",
-                        'SF_%': f"{(stats.get('sf', 0)/(i+1))*100:.2f}",
-                        'Final_%': f"{(stats.get('final', 0)/(i+1))*100:.2f}",
-                        'Win_%': f"{(stats.get('winner', 0)/(i+1))*100:.2f}"
-                    })
-                current_top10 = temp_top10
-                current_bracket = generate_ui_bracket(matchups_tally, r32_slot_tally, ratings)
-            
-            if i % 100 == 0:
-                time.sleep(0.0001)
-            
-            if (i + 1) % max(1, num_sims // 10) == 0:
-                print(f"Simulated {i + 1}/{num_sims}")
+        for t in rs['elo_tier']:
+            for k in rs['elo_tier'][t]:
+                global_run_stats['elo_tier'][t][k] += rs['elo_tier'][t][k]
+        
+        current_status = "Simulating..."
+        current_progress = i + 1
+        
+        if (i + 1) % 100 == 0 or (i + 1) == num_sims:
+            sorted_teams = sorted(tally.items(), key=lambda x: x[1].get('winner', 0), reverse=True)[:10]
+            temp_top10 = []
+            for team, stats in sorted_teams:
+                temp_top10.append({
+                    'Team': team,
+                    'R32_%': f"{(stats.get('r32', 0)/(i+1))*100:.2f}",
+                    'R16_%': f"{(stats.get('r16', 0)/(i+1))*100:.2f}",
+                    'QF_%': f"{(stats.get('qf', 0)/(i+1))*100:.2f}",
+                    'SF_%': f"{(stats.get('sf', 0)/(i+1))*100:.2f}",
+                    'Final_%': f"{(stats.get('final', 0)/(i+1))*100:.2f}",
+                    'Win_%': f"{(stats.get('winner', 0)/(i+1))*100:.2f}"
+                })
+            current_top10 = temp_top10
+            use_elo_probs = (num_sims < 10)
+            current_bracket = generate_ui_bracket(matchups_tally, r32_slot_tally, ratings, use_elo_probs)
+        
+        if i % 100 == 0:
+            time.sleep(0.0001)
+        
+        if (i + 1) % max(1, num_sims // 10) == 0:
+            print(f"Simulated {i + 1}/{num_sims}")
+
+    if num_sims < 10:
+        current_status = "Simulating..."
+        init_worker(teams, matches, ratings)
+        for i in range(num_sims):
+            result = worker_sim(i)
+            process_result(i, result)
+    else:
+        # Spawn pool and execute simulations in parallel
+        with multiprocessing.Pool(initializer=init_worker, initargs=(teams, matches, ratings)) as pool:
+            for i, result in enumerate(pool.imap_unordered(worker_sim, range(num_sims), chunksize=chunk_size)):
+                process_result(i, result)
                 
     current_status = "Aggregating Results..."
     
@@ -301,7 +319,8 @@ def main():
 def run_simulations_for_ui(num_sims):
     tally, matchups_tally, global_run_stats, num_sims, config, r32_slot_tally, ratings = run_simulations(num_sims)
     
-    ui_data = generate_ui_bracket(matchups_tally, r32_slot_tally, ratings)
+    use_elo_probs = (num_sims < 10) if num_sims else False
+    ui_data = generate_ui_bracket(matchups_tally, r32_slot_tally, ratings, use_elo_probs=use_elo_probs)
     
     sorted_teams = sorted(tally.items(), key=lambda x: x[1].get('winner', 0), reverse=True)
     ui_stats = []
