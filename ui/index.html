@@ -38,17 +38,28 @@
     <div class="stats-wrapper">
         <h2 class="stats-heading">Tournament Simulation Probabilities</h2>
         <div class="table-container">
+            <div id="column-controls" class="column-controls">
+                <span class="column-controls-label">Columns:</span>
+                <button class="col-toggle active" data-col="rank">Rank</button>
+                <button class="col-toggle active" data-col="team">Team</button>
+                <button class="col-toggle active" data-col="R32_%">R32 %</button>
+                <button class="col-toggle active" data-col="R16_%">R16 %</button>
+                <button class="col-toggle active" data-col="QF_%">QF %</button>
+                <button class="col-toggle active" data-col="SF_%">SF %</button>
+                <button class="col-toggle active" data-col="Final_%">Final %</button>
+                <button class="col-toggle active" data-col="Win_%">Win %</button>
+            </div>
             <table id="stats-table" class="stats-table">
                 <thead>
                     <tr>
-                        <th class="rank-col">Rank</th>
-                        <th>Team</th>
-                        <th>R32 %</th>
-                        <th>R16 %</th>
-                        <th>QF %</th>
-                        <th>SF %</th>
-                        <th>Final %</th>
-                        <th>Win %</th>
+                        <th class="rank-col sortable" data-sort="rank">Rank <span class="sort-icon"></span></th>
+                        <th class="team-col sortable" data-sort="team">Team <span class="sort-icon"></span></th>
+                        <th class="sortable" data-sort="R32_%">R32 % <span class="sort-icon"></span></th>
+                        <th class="sortable" data-sort="R16_%">R16 % <span class="sort-icon"></span></th>
+                        <th class="sortable" data-sort="QF_%">QF % <span class="sort-icon"></span></th>
+                        <th class="sortable" data-sort="SF_%">SF % <span class="sort-icon"></span></th>
+                        <th class="sortable" data-sort="Final_%">Final % <span class="sort-icon"></span></th>
+                        <th class="sortable" data-sort="Win_%">Win % <span class="sort-icon"></span></th>
                     </tr>
                 </thead>
                 <tbody id="stats-body"></tbody>

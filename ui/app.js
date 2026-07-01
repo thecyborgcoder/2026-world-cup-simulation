@@ -1,4 +1,50 @@
+let currentSortCol = null;
+let currentSortDesc = true;
+let visibleColumns = {
+    'rank': true,
+    'team': true,
+    'R32_%': true,
+    'R16_%': true,
+    'QF_%': true,
+    'SF_%': true,
+    'Final_%': true,
+    'Win_%': true
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Column visibility toggles
+    document.querySelectorAll('.column-controls .col-toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const col = e.target.dataset.col;
+            e.target.classList.toggle('active');
+            visibleColumns[col] = e.target.classList.contains('active');
+            if (window.currentStatsData) renderStatsTable(window.currentStatsData);
+        });
+    });
+
+    // Sorting headers
+    document.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (currentSortCol === col) {
+                currentSortDesc = !currentSortDesc;
+            } else {
+                currentSortCol = col;
+                currentSortDesc = true;
+            }
+            
+            document.querySelectorAll('th.sortable .sort-icon').forEach(icon => {
+                icon.classList.remove('asc', 'desc');
+            });
+            const activeIcon = th.querySelector('.sort-icon');
+            if (activeIcon) {
+                activeIcon.classList.add(currentSortDesc ? 'desc' : 'asc');
+            }
+            
+            if (window.currentStatsData) renderStatsTable(window.currentStatsData);
+        });
+    });
+
     // Add cache-busting parameter to ensure the latest data is always fetched
     const cacheBuster = '?t=' + Date.now();
     
@@ -698,51 +744,102 @@ let isStatsTableListenerAttached = false;
 function renderStatsTable(stats) {
     const tbody = document.getElementById('stats-body');
     const btn = document.getElementById('expand-stats-btn');
-    if (!tbody || !btn) return;
+    if (!tbody || !btn || !stats) return;
+    
+    stats.forEach((s, i) => {
+        if (s.originalRank === undefined) s.originalRank = i + 1;
+    });
     
     window.currentStatsData = stats;
     window.initialScrambleDone = true;
     
+    let displayStats = [...stats];
+    if (currentSortCol) {
+        displayStats.sort((a, b) => {
+            let valA, valB;
+            if (currentSortCol === 'rank') {
+                valA = a.originalRank;
+                valB = b.originalRank;
+            } else if (currentSortCol === 'team') {
+                valA = a.Team;
+                valB = b.Team;
+            } else {
+                valA = parseFloat(a[currentSortCol] || 0);
+                valB = parseFloat(b[currentSortCol] || 0);
+            }
+            if (valA < valB) return currentSortDesc ? 1 : -1;
+            if (valA > valB) return currentSortDesc ? -1 : 1;
+            return 0;
+        });
+    }
+
+    document.querySelectorAll('th.sortable').forEach(th => {
+        const col = th.dataset.sort;
+        th.style.display = visibleColumns[col] ? '' : 'none';
+    });
+    
     const renderRows = () => {
-        const statsData = window.currentStatsData;
         tbody.innerHTML = '';
-        const limit = isStatsExpanded ? statsData.length : Math.min(10, statsData.length);
-        const visibleStats = statsData.slice(0, limit);
+        const limit = isStatsExpanded ? displayStats.length : Math.min(10, displayStats.length);
+        const visibleStats = displayStats.slice(0, limit);
         
         visibleStats.forEach((row, index) => {
             const tr = document.createElement('tr');
             
             if (window.isTableScrambling && index >= window.tableLockedRows) {
                 tr.classList.add('table-row-scrambling');
-                const tdRank = document.createElement('td');
-                tdRank.classList.add('rank-col');
-                tdRank.textContent = index + 1;
-                tr.appendChild(tdRank);
-                for(let i=0; i<7; i++) {
-                    tr.appendChild(document.createElement('td'));
-                }
-            } else {
-                const tdRank = document.createElement('td');
-                tdRank.classList.add('rank-col');
-                tdRank.textContent = index + 1;
-                tr.appendChild(tdRank);
                 
-                const tdTeam = document.createElement('td');
-                tdTeam.textContent = row['Team'];
-                tr.appendChild(tdTeam);
+                if (visibleColumns['rank']) {
+                    const tdRank = document.createElement('td');
+                    tdRank.classList.add('rank-col');
+                    tdRank.textContent = row.originalRank;
+                    tr.appendChild(tdRank);
+                }
+                
+                if (visibleColumns['team']) {
+                    const tdTeam = document.createElement('td');
+                    tdTeam.classList.add('team-col');
+                    tdTeam.textContent = row.Team || '';
+                    tr.appendChild(tdTeam);
+                }
                 
                 const keys = ['R32_%', 'R16_%', 'QF_%', 'SF_%', 'Final_%', 'Win_%'];
                 keys.forEach(key => {
-                    const td = document.createElement('td');
-                    td.textContent = row[key] ? row[key] + '%' : '0.00%';
-                    tr.appendChild(td);
+                    if (visibleColumns[key]) {
+                        const td = document.createElement('td');
+                        td.textContent = '0.00%';
+                        tr.appendChild(td);
+                    }
+                });
+            } else {
+                if (visibleColumns['rank']) {
+                    const tdRank = document.createElement('td');
+                    tdRank.classList.add('rank-col');
+                    tdRank.textContent = row.originalRank;
+                    tr.appendChild(tdRank);
+                }
+                
+                if (visibleColumns['team']) {
+                    const tdTeam = document.createElement('td');
+                    tdTeam.classList.add('team-col');
+                    tdTeam.textContent = row['Team'];
+                    tr.appendChild(tdTeam);
+                }
+                
+                const keys = ['R32_%', 'R16_%', 'QF_%', 'SF_%', 'Final_%', 'Win_%'];
+                keys.forEach(key => {
+                    if (visibleColumns[key]) {
+                        const td = document.createElement('td');
+                        td.textContent = row[key] ? row[key] + '%' : '0.00%';
+                        tr.appendChild(td);
+                    }
                 });
             }
             
             tbody.appendChild(tr);
         });
         
-        if (statsData.length <= 10) {
+        if (displayStats.length <= 10) {
             btn.disabled = true;
             btn.style.opacity = '0.5';
             btn.style.cursor = 'not-allowed';
@@ -758,7 +855,7 @@ function renderStatsTable(stats) {
     if (!isStatsTableListenerAttached) {
         btn.addEventListener('click', () => {
             isStatsExpanded = !isStatsExpanded;
-            renderRows();
+            if (window.currentStatsData) renderStatsTable(window.currentStatsData);
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
             }, 50);
@@ -810,15 +907,15 @@ function startScramblingInterval() {
             scramblingRows.forEach((tr, idx) => {
                 const name = allIsoKeys[Math.floor(Math.random() * allIsoKeys.length)];
                 const tds = tr.querySelectorAll('td');
-                if (tds.length >= 8) {
-                    tds[1].textContent = name;
-                    tds[2].textContent = (Math.random() * 100).toFixed(2) + '%';
-                    tds[3].textContent = (Math.random() * 80).toFixed(2) + '%';
-                    tds[4].textContent = (Math.random() * 60).toFixed(2) + '%';
-                    tds[5].textContent = (Math.random() * 40).toFixed(2) + '%';
-                    tds[6].textContent = (Math.random() * 20).toFixed(2) + '%';
-                    tds[7].textContent = (Math.random() * 10).toFixed(2) + '%';
-                }
+                let tIdx = 0;
+                if (visibleColumns['rank'] && tds[tIdx]) tIdx++;
+                if (visibleColumns['team'] && tds[tIdx]) tds[tIdx++].textContent = name;
+                if (visibleColumns['R32_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 100).toFixed(2) + '%';
+                if (visibleColumns['R16_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 80).toFixed(2) + '%';
+                if (visibleColumns['QF_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 60).toFixed(2) + '%';
+                if (visibleColumns['SF_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 40).toFixed(2) + '%';
+                if (visibleColumns['Final_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 20).toFixed(2) + '%';
+                if (visibleColumns['Win_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 10).toFixed(2) + '%';
             });
         } else if (!window.initialScrambleDone) {
             const tbody = document.getElementById('stats-body');
@@ -827,16 +924,16 @@ function startScramblingInterval() {
             let html = '';
             for (let i = 0; i < 10; i++) {
                 const name = allIsoKeys[Math.floor(Math.random() * allIsoKeys.length)];
-                html += `<tr class="table-row-scrambling">
-                    <td class="rank-col">${i + 1}</td>
-                    <td>${name}</td>
-                    <td>${(Math.random() * 100).toFixed(2)}%</td>
-                    <td>${(Math.random() * 80).toFixed(2)}%</td>
-                    <td>${(Math.random() * 60).toFixed(2)}%</td>
-                    <td>${(Math.random() * 40).toFixed(2)}%</td>
-                    <td>${(Math.random() * 20).toFixed(2)}%</td>
-                    <td>${(Math.random() * 10).toFixed(2)}%</td>
-                </tr>`;
+                html += `<tr class="table-row-scrambling">`;
+                if (visibleColumns['rank']) html += `<td class="rank-col">${i + 1}</td>`;
+                if (visibleColumns['team']) html += `<td class="team-col">${name}</td>`;
+                if (visibleColumns['R32_%']) html += `<td>${(Math.random() * 100).toFixed(2)}%</td>`;
+                if (visibleColumns['R16_%']) html += `<td>${(Math.random() * 80).toFixed(2)}%</td>`;
+                if (visibleColumns['QF_%']) html += `<td>${(Math.random() * 60).toFixed(2)}%</td>`;
+                if (visibleColumns['SF_%']) html += `<td>${(Math.random() * 40).toFixed(2)}%</td>`;
+                if (visibleColumns['Final_%']) html += `<td>${(Math.random() * 20).toFixed(2)}%</td>`;
+                if (visibleColumns['Win_%']) html += `<td>${(Math.random() * 10).toFixed(2)}%</td>`;
+                html += `</tr>`;
             }
             tbody.innerHTML = html;
             const btn = document.getElementById('expand-stats-btn');
