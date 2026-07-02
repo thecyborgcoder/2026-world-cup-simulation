@@ -449,39 +449,55 @@ path.connector.highlight {
 
 /* Column Controls & Sorting */
 .column-controls {
-    padding: 1rem;
+    padding: 0.5rem 1rem;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
     align-items: center;
     border-bottom: 1px solid var(--card-border);
     background: rgba(0, 0, 0, 0.2);
 }
 
+.toggles-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.toggles-group {
+    display: flex;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 210px;
+}
+
 .column-controls-label {
     color: var(--text-secondary);
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 600;
-    margin-right: 0.5rem;
+    margin-right: 0.25rem;
 }
 
 .col-toggle {
+    flex: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-family: inherit;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-secondary);
     background: rgba(255, 255, 255, 0.05);
-    padding: 0.3rem 0.7rem;
-    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
     border: 1px solid var(--card-border);
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
+    white-space: nowrap;
 }
 
 .col-toggle:hover {
@@ -545,8 +561,11 @@ path.connector.highlight {
 /* Stats Table Styles */
 .stats-wrapper {
     padding: 1rem 2rem 2rem 2rem;
-    max-width: 900px;
+    width: fit-content;
+    max-width: 100%;
     margin: 0 auto;
+    transition: min-width 0.3s ease;
+    overflow-x: auto;
 }
 
 .stats-heading {
@@ -578,6 +597,7 @@ path.connector.highlight {
 .stats-table td {
     padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
 }
 
 .stats-table th {

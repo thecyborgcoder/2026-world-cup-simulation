@@ -778,6 +778,12 @@ function renderStatsTable(stats) {
         th.style.display = visibleColumns[col] ? '' : 'none';
     });
     
+    const visibleCount = Object.values(visibleColumns).filter(v => v).length;
+    const statsWrapper = document.querySelector('.stats-wrapper');
+    if (statsWrapper) {
+        statsWrapper.style.minWidth = `${300 + 50 * visibleCount}px`;
+    }
+    
     const renderRows = () => {
         tbody.innerHTML = '';
         const limit = isStatsExpanded ? displayStats.length : Math.min(10, displayStats.length);

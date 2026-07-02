@@ -40,14 +40,20 @@
         <div class="table-container">
             <div id="column-controls" class="column-controls">
                 <span class="column-controls-label">Columns:</span>
-                <button class="col-toggle active" data-col="rank">Rank</button>
-                <button class="col-toggle active" data-col="team">Team</button>
-                <button class="col-toggle active" data-col="R32_%">R32 %</button>
-                <button class="col-toggle active" data-col="R16_%">R16 %</button>
-                <button class="col-toggle active" data-col="QF_%">QF %</button>
-                <button class="col-toggle active" data-col="SF_%">SF %</button>
-                <button class="col-toggle active" data-col="Final_%">Final %</button>
-                <button class="col-toggle active" data-col="Win_%">Win %</button>
+                <div class="toggles-row">
+                    <div class="toggles-group">
+                        <button class="col-toggle active" data-col="rank">Rank</button>
+                        <button class="col-toggle active" data-col="team">Team</button>
+                        <button class="col-toggle active" data-col="R32_%">R32 %</button>
+                        <button class="col-toggle active" data-col="R16_%">R16 %</button>
+                    </div>
+                    <div class="toggles-group">
+                        <button class="col-toggle active" data-col="QF_%">QF %</button>
+                        <button class="col-toggle active" data-col="SF_%">SF %</button>
+                        <button class="col-toggle active" data-col="Final_%">Final %</button>
+                        <button class="col-toggle active" data-col="Win_%">Win %</button>
+                    </div>
+                </div>
             </div>
             <table id="stats-table" class="stats-table">
                 <thead>
