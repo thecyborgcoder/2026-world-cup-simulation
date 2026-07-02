@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,8 +9,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="header">
+        <div class="header-title">
+            <h1>2026 World Cup Simulator</h1>
+        </div>
+        
         <div class="controls">
             <div class="toggle-group">
                 <button id="toggle-table" class="control-btn toggle-btn active">Table</button>
@@ -22,6 +28,14 @@
             </div>
             <button id="run-btn" class="control-btn run-btn">Run Simulations</button>
         </div>
+
+        <div class="header-meta" id="header-meta">
+            <div class="meta-item"><span>Last Run</span> <strong id="meta-time">-</strong></div>
+            <div class="meta-item"><span>Simulations</span> <strong id="meta-sims">-</strong></div>
+            <div class="meta-item"><span>Avg Goals</span> <strong id="meta-goals">-</strong></div>
+            <div class="meta-item"><span>Penalties</span> <strong id="meta-pens">-</strong></div>
+        </div>
+
         <div id="progress-wrapper" class="progress-wrapper" style="display: none;">
             <div class="progress-info">
                 <span id="progress-status">Simulating...</span>
@@ -31,12 +45,12 @@
                 <div id="progress-bar" class="progress-bar"></div>
             </div>
         </div>
-        <h1>2026 World Cup Simulator</h1>
-        <p>Knockout Stage Bracket</p>
     </div>
 
     <div class="stats-wrapper">
-        <h2 class="stats-heading">Tournament Simulation Probabilities</h2>
+        <div class="stats-heading-wrapper">
+            <h2 class="stats-heading">Tournament Simulation Probabilities</h2>
+        </div>
         <div class="table-container">
             <div id="column-controls" class="column-controls">
                 <span class="column-controls-label">Columns:</span>
@@ -87,4 +101,5 @@
 
     <script src="app.js?v=2"></script>
 </body>
+
 </html>

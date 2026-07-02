@@ -339,14 +339,35 @@ def run_simulations_for_ui(num_sims):
     import os
     import json as json_mod
     os.makedirs('ui', exist_ok=True)
+    
+    total_games = global_run_stats['group_games'] + global_run_stats['ko_games']
+    total_goals = global_run_stats['group_goals'] + global_run_stats['ko_goals']
+    avg_goals = (total_goals / total_games) if total_games > 0 else 0
+    
+    ko_games = global_run_stats['ko_games']
+    pen_wins = global_run_stats['pen_wins']
+    penalties_rate = (pen_wins / ko_games) * 100 if ko_games > 0 else 0
+    
+    import datetime
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    ui_meta = {
+        'timestamp': timestamp,
+        'simulations': num_sims,
+        'avg_goals': avg_goals,
+        'penalties_rate': penalties_rate
+    }
+    
     with open('ui/data.json', 'w') as f:
         json_mod.dump(ui_data, f, indent=2)
     with open('ui/stats.json', 'w') as f:
         json_mod.dump(ui_stats, f, indent=2)
+    with open('ui/meta.json', 'w') as f:
+        json_mod.dump(ui_meta, f, indent=2)
         
     generate_reports(tally, matchups_tally, global_run_stats, num_sims, config.get('output_dir', './outputs'))
         
-    return ui_data, ui_stats
+    return ui_data, ui_stats, ui_meta
 
 
 if __name__ == '__main__':

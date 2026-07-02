@@ -37,7 +37,7 @@ class WorldCupHandler(SimpleHTTPRequestHandler):
                 num_sims = int(payload.get('simulations', 1000))
                 
                 print(f"Received request to run {num_sims} simulations.")
-                bracket_data, stats_data = main.run_simulations_for_ui(num_sims)
+                bracket_data, stats_data, meta_data = main.run_simulations_for_ui(num_sims)
                 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -45,7 +45,8 @@ class WorldCupHandler(SimpleHTTPRequestHandler):
                 
                 response_data = {
                     'data': bracket_data,
-                    'stats': stats_data
+                    'stats': stats_data,
+                    'meta': meta_data
                 }
                 self.wfile.write(json.dumps(response_data).encode('utf-8'))
                 

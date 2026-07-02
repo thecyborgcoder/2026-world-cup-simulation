@@ -57,6 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(stats => renderStatsTable(stats))
         .catch(err => console.error("Failed to load stats data:", err));
+        
+    fetch('meta.json' + cacheBuster)
+        .then(res => res.json())
+        .then(meta => renderMeta(meta))
+        .catch(err => console.error("Failed to load meta data:", err));
 
     document.getElementById('clear-btn').addEventListener('click', clearUI);
     
@@ -324,6 +329,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 renderStatsTable(resData.stats);
+                if (resData.meta) {
+                    renderMeta(resData.meta);
+                }
             })
             .catch(err => {
                 console.error("Simulation error:", err);
@@ -359,6 +367,13 @@ document.addEventListener('DOMContentLoaded', () => {
 function clearUI() {
     // Clear stats table
     document.getElementById('stats-body').innerHTML = '';
+    
+    // Clear meta data
+    const metaDisplayIds = ['meta-time', 'meta-sims', 'meta-goals', 'meta-pens'];
+    metaDisplayIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '-';
+    });
     
     // Clear team data but keep the empty boxes
     const teams = document.querySelectorAll('.team');
@@ -1067,4 +1082,20 @@ function updateBracketDOM(bracketData) {
             }
         });
     });
+}
+
+function renderMeta(meta) {
+    if (!meta) return;
+    
+    const simsEl = document.getElementById('meta-sims');
+    if (simsEl) simsEl.textContent = meta.simulations ? meta.simulations.toLocaleString() : '-';
+    
+    const timeEl = document.getElementById('meta-time');
+    if (timeEl) timeEl.textContent = meta.timestamp || '-';
+
+    const goalsEl = document.getElementById('meta-goals');
+    if (goalsEl) goalsEl.textContent = meta.avg_goals != null ? meta.avg_goals.toFixed(2) : '-';
+    
+    const pensEl = document.getElementById('meta-pens');
+    if (pensEl) pensEl.textContent = meta.penalties_rate != null ? meta.penalties_rate.toFixed(1) + '%' : '-';
 }
