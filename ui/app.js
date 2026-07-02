@@ -799,7 +799,27 @@ function renderStatsTable(stats) {
                 if (visibleColumns['team']) {
                     const tdTeam = document.createElement('td');
                     tdTeam.classList.add('team-col');
-                    tdTeam.textContent = row.Team || '';
+                    
+                    const teamName = row.Team || '';
+                    let baseName = teamName;
+                    if (baseName.includes(' (')) {
+                        baseName = baseName.split(' (')[0];
+                    }
+                    const isoCode = teamToIso[baseName];
+                    
+                    if (isoCode) {
+                        const flagImg = document.createElement('img');
+                        flagImg.classList.add('table-flag');
+                        flagImg.src = `https://flagcdn.com/24x18/${isoCode}.png`;
+                        flagImg.alt = baseName;
+                        tdTeam.appendChild(flagImg);
+                    }
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = teamName;
+                    nameSpan.style.verticalAlign = 'middle';
+                    tdTeam.appendChild(nameSpan);
+                    
                     tr.appendChild(tdTeam);
                 }
                 
@@ -822,7 +842,27 @@ function renderStatsTable(stats) {
                 if (visibleColumns['team']) {
                     const tdTeam = document.createElement('td');
                     tdTeam.classList.add('team-col');
-                    tdTeam.textContent = row['Team'];
+                    
+                    const teamName = row['Team'] || '';
+                    let baseName = teamName;
+                    if (baseName.includes(' (')) {
+                        baseName = baseName.split(' (')[0];
+                    }
+                    const isoCode = teamToIso[baseName];
+                    
+                    if (isoCode) {
+                        const flagImg = document.createElement('img');
+                        flagImg.classList.add('table-flag');
+                        flagImg.src = `https://flagcdn.com/24x18/${isoCode}.png`;
+                        flagImg.alt = baseName;
+                        tdTeam.appendChild(flagImg);
+                    }
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = teamName;
+                    nameSpan.style.verticalAlign = 'middle';
+                    tdTeam.appendChild(nameSpan);
+                    
                     tr.appendChild(tdTeam);
                 }
                 
