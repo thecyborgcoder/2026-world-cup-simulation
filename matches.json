@@ -694,5 +694,83 @@
         "pen_a": 3,
         "pen_b": 2,
         "winner": "Morocco"
+    },
+    {
+        "date": "Tue, Jun 30",
+        "stage": "knockout",
+        "team_a": "Norway",
+        "team_b": "Ivory Coast",
+        "score_a": 2,
+        "score_b": 1,
+        "status": "FT",
+        "method": "REG",
+        "pen_a": null,
+        "pen_b": null,
+        "winner": "Norway"
+    },
+    {
+        "date": "Tue, Jun 30",
+        "stage": "knockout",
+        "team_a": "France",
+        "team_b": "Sweden",
+        "score_a": 3,
+        "score_b": 0,
+        "status": "FT",
+        "method": "REG",
+        "pen_a": null,
+        "pen_b": null,
+        "winner": "France"
+    },
+    {
+        "date": "Tue, Jun 30",
+        "stage": "knockout",
+        "team_a": "Mexico",
+        "team_b": "Ecuador",
+        "score_a": 2,
+        "score_b": 0,
+        "status": "FT",
+        "method": "REG",
+        "pen_a": null,
+        "pen_b": null,
+        "winner": "Mexico"
+    },
+    {
+        "date": "Wed, Jul 1",
+        "stage": "knockout",
+        "team_a": "England",
+        "team_b": "DR Congo",
+        "score_a": 2,
+        "score_b": 1,
+        "status": "FT",
+        "method": "REG",
+        "pen_a": null,
+        "pen_b": null,
+        "winner": "England"
+    },
+    {
+        "date": "Wed, Jul 1",
+        "stage": "knockout",
+        "team_a": "Belgium",
+        "team_b": "Senegal",
+        "score_a": 3,
+        "score_b": 2,
+        "status": "FT",
+        "method": "REG",
+        "pen_a": null,
+        "pen_b": null,
+        "winner": "Belgium"
+    },
+    {
+        "date": "Wed, Jul 1",
+        "stage": "knockout",
+        "team_a": "United States",
+        "team_b": "Bosnia and Herzegovina",
+        "score_a": 2,
+        "score_b": 0,
+        "status": "FT",
+        "method": "REG",
+        "pen_a": null,
+        "pen_b": null,
+        "winner": "United States"
     }
 ]

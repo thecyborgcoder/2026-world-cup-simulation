@@ -19,13 +19,13 @@
       {
         "id": "L_roundOf32_1",
         "team1": {
-          "name": "France (78.7%)",
+          "name": "France (100.0%)",
           "code": "FRA",
           "score": "W",
           "winner": true
         },
         "team2": {
-          "name": "Sweden (21.3%)",
+          "name": "Sweden (0.0%)",
           "code": "SWE",
           "score": "L",
           "winner": false
@@ -79,13 +79,13 @@
       {
         "id": "L_roundOf32_5",
         "team1": {
-          "name": "Ivory Coast (35.7%)",
+          "name": "Ivory Coast (0.0%)",
           "code": "CIV",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Norway (64.3%)",
+          "name": "Norway (100.0%)",
           "code": "NOR",
           "score": "W",
           "winner": true
@@ -94,13 +94,13 @@
       {
         "id": "L_roundOf32_6",
         "team1": {
-          "name": "Ecuador (40.9%)",
+          "name": "Ecuador (0.0%)",
           "code": "ECU",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Mexico (59.1%)",
+          "name": "Mexico (100.0%)",
           "code": "MEX",
           "score": "W",
           "winner": true
@@ -109,13 +109,13 @@
       {
         "id": "L_roundOf32_7",
         "team1": {
-          "name": "DR Congo (24.7%)",
+          "name": "DR Congo (0.0%)",
           "code": "DRC",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "England (75.3%)",
+          "name": "England (100.0%)",
           "code": "ENG",
           "score": "W",
           "winner": true
@@ -126,13 +126,13 @@
       {
         "id": "L_roundOf16_0",
         "team1": {
-          "name": "Paraguay (26.5%)",
+          "name": "Paraguay (25.9%)",
           "code": "PAR",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "France (73.5%)",
+          "name": "France (74.1%)",
           "code": "FRA",
           "score": "W",
           "winner": true
@@ -141,13 +141,13 @@
       {
         "id": "L_roundOf16_1",
         "team1": {
-          "name": "Canada (48.2%)",
+          "name": "Canada (48.0%)",
           "code": "CAN",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Morocco (51.8%)",
+          "name": "Morocco (52.0%)",
           "code": "MAR",
           "score": "W",
           "winner": true
@@ -156,13 +156,13 @@
       {
         "id": "L_roundOf16_2",
         "team1": {
-          "name": "Brazil (59.6%)",
+          "name": "Brazil (58.1%)",
           "code": "BRA",
           "score": "W",
           "winner": true
         },
         "team2": {
-          "name": "Norway (40.4%)",
+          "name": "Norway (41.9%)",
           "code": "NOR",
           "score": "L",
           "winner": false
@@ -171,13 +171,13 @@
       {
         "id": "L_roundOf16_3",
         "team1": {
-          "name": "Mexico (48.0%)",
+          "name": "Mexico (49.7%)",
           "code": "MEX",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "England (52.0%)",
+          "name": "England (50.3%)",
           "code": "ENG",
           "score": "W",
           "winner": true
@@ -188,13 +188,13 @@
       {
         "id": "L_quarterFinals_0",
         "team1": {
-          "name": "France (69.1%)",
+          "name": "France (69.6%)",
           "code": "FRA",
           "score": "W",
           "winner": true
         },
         "team2": {
-          "name": "Morocco (30.9%)",
+          "name": "Morocco (30.4%)",
           "code": "MAR",
           "score": "L",
           "winner": false
@@ -203,13 +203,13 @@
       {
         "id": "L_quarterFinals_1",
         "team1": {
-          "name": "Brazil (49.5%)",
+          "name": "Brazil (48.7%)",
           "code": "BRA",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "England (50.5%)",
+          "name": "England (51.3%)",
           "code": "ENG",
           "score": "W",
           "winner": true
@@ -220,13 +220,13 @@
       {
         "id": "L_semiFinals_0",
         "team1": {
-          "name": "France (57.2%)",
+          "name": "France (57.4%)",
           "code": "FRA",
           "score": "W",
           "winner": true
         },
         "team2": {
-          "name": "England (42.8%)",
+          "name": "England (42.6%)",
           "code": "ENG",
           "score": "L",
           "winner": false
@@ -254,13 +254,13 @@
       {
         "id": "R_roundOf32_1",
         "team1": {
-          "name": "Austria (26.2%)",
+          "name": "Austria (26.0%)",
           "code": "AUT",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Spain (73.8%)",
+          "name": "Spain (74.0%)",
           "code": "ESP",
           "score": "W",
           "winner": true
@@ -269,13 +269,13 @@
       {
         "id": "R_roundOf32_2",
         "team1": {
-          "name": "Bosnia and Herzegovina (29.5%)",
+          "name": "Bosnia and Herzegovina (29.3%)",
           "code": "BIH",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "United States (70.5%)",
+          "name": "United States (70.7%)",
           "code": "USA",
           "score": "W",
           "winner": true
@@ -284,28 +284,28 @@
       {
         "id": "R_roundOf32_3",
         "team1": {
-          "name": "Belgium (53.7%)",
+          "name": "Belgium (0.0%)",
           "code": "BEL",
-          "score": "W",
-          "winner": true
-        },
-        "team2": {
-          "name": "Senegal (46.3%)",
-          "code": "SEN",
           "score": "L",
           "winner": false
+        },
+        "team2": {
+          "name": "Senegal (100.0%)",
+          "code": "SEN",
+          "score": "W",
+          "winner": true
         }
       },
       {
         "id": "R_roundOf32_4",
         "team1": {
-          "name": "Algeria (39.2%)",
+          "name": "Algeria (39.4%)",
           "code": "ALG",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Switzerland (60.8%)",
+          "name": "Switzerland (60.6%)",
           "code": "SUI",
           "score": "W",
           "winner": true
@@ -314,13 +314,13 @@
       {
         "id": "R_roundOf32_5",
         "team1": {
-          "name": "Croatia (42.6%)",
+          "name": "Croatia (43.0%)",
           "code": "CRO",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Portugal (57.4%)",
+          "name": "Portugal (57.0%)",
           "code": "POR",
           "score": "W",
           "winner": true
@@ -329,13 +329,13 @@
       {
         "id": "R_roundOf32_6",
         "team1": {
-          "name": "Argentina (86.2%)",
+          "name": "Argentina (86.1%)",
           "code": "ARG",
           "score": "W",
           "winner": true
         },
         "team2": {
-          "name": "Cape Verde (13.8%)",
+          "name": "Cape Verde (13.9%)",
           "code": "CPV",
           "score": "L",
           "winner": false
@@ -344,13 +344,13 @@
       {
         "id": "R_roundOf32_7",
         "team1": {
-          "name": "Australia (55.0%)",
+          "name": "Australia (54.9%)",
           "code": "AUS",
           "score": "W",
           "winner": true
         },
         "team2": {
-          "name": "Egypt (45.0%)",
+          "name": "Egypt (45.1%)",
           "code": "EGY",
           "score": "L",
           "winner": false
@@ -361,13 +361,13 @@
       {
         "id": "R_roundOf16_0",
         "team1": {
-          "name": "Colombia (38.2%)",
+          "name": "Colombia (38.4%)",
           "code": "COL",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Spain (61.8%)",
+          "name": "Spain (61.6%)",
           "code": "ESP",
           "score": "W",
           "winner": true
@@ -376,28 +376,28 @@
       {
         "id": "R_roundOf16_1",
         "team1": {
-          "name": "United States (49.7%)",
+          "name": "United States (53.5%)",
           "code": "USA",
-          "score": "L",
-          "winner": false
-        },
-        "team2": {
-          "name": "Belgium (50.3%)",
-          "code": "BEL",
           "score": "W",
           "winner": true
+        },
+        "team2": {
+          "name": "Senegal (46.5%)",
+          "code": "SEN",
+          "score": "L",
+          "winner": false
         }
       },
       {
         "id": "R_roundOf16_2",
         "team1": {
-          "name": "Switzerland (43.1%)",
+          "name": "Switzerland (43.7%)",
           "code": "SUI",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Portugal (56.9%)",
+          "name": "Portugal (56.3%)",
           "code": "POR",
           "score": "W",
           "winner": true
@@ -406,13 +406,13 @@
       {
         "id": "R_roundOf16_3",
         "team1": {
-          "name": "Argentina (76.2%)",
+          "name": "Argentina (76.7%)",
           "code": "ARG",
           "score": "W",
           "winner": true
         },
         "team2": {
-          "name": "Australia (23.8%)",
+          "name": "Australia (23.3%)",
           "code": "AUS",
           "score": "L",
           "winner": false
@@ -423,14 +423,14 @@
       {
         "id": "R_quarterFinals_0",
         "team1": {
-          "name": "Spain (70.8%)",
+          "name": "Spain (71.0%)",
           "code": "ESP",
           "score": "W",
           "winner": true
         },
         "team2": {
-          "name": "Belgium (29.2%)",
-          "code": "BEL",
+          "name": "United States (29.0%)",
+          "code": "USA",
           "score": "L",
           "winner": false
         }
@@ -438,13 +438,13 @@
       {
         "id": "R_quarterFinals_1",
         "team1": {
-          "name": "Portugal (37.3%)",
+          "name": "Portugal (37.1%)",
           "code": "POR",
           "score": "L",
           "winner": false
         },
         "team2": {
-          "name": "Argentina (62.7%)",
+          "name": "Argentina (62.9%)",
           "code": "ARG",
           "score": "W",
           "winner": true
@@ -472,13 +472,13 @@
   "final": {
     "id": "F_1",
     "team1": {
-      "name": "France (48.7%)",
+      "name": "France (49.2%)",
       "code": "FRA",
       "score": "L",
       "winner": false
     },
     "team2": {
-      "name": "Argentina (51.3%)",
+      "name": "Argentina (50.8%)",
       "code": "ARG",
       "score": "W",
       "winner": true
