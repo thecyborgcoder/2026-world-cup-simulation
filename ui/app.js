@@ -3,6 +3,7 @@ let currentSortDesc = true;
 let visibleColumns = {
     'rank': true,
     'team': true,
+    'Elo': true,
     'R32_%': true,
     'R16_%': true,
     'QF_%': true,
@@ -844,6 +845,12 @@ function renderStatsTable(stats) {
                     tr.appendChild(tdTeam);
                 }
                 
+                if (visibleColumns['Elo']) {
+                    const tdElo = document.createElement('td');
+                    tdElo.textContent = '-';
+                    tr.appendChild(tdElo);
+                }
+                
                 const keys = ['R32_%', 'R16_%', 'QF_%', 'SF_%', 'Final_%', 'Win_%'];
                 keys.forEach(key => {
                     if (visibleColumns[key]) {
@@ -885,6 +892,12 @@ function renderStatsTable(stats) {
                     tdTeam.appendChild(nameSpan);
                     
                     tr.appendChild(tdTeam);
+                }
+                
+                if (visibleColumns['Elo']) {
+                    const tdElo = document.createElement('td');
+                    tdElo.textContent = row['Elo'] !== undefined ? row['Elo'] : '-';
+                    tr.appendChild(tdElo);
                 }
                 
                 const keys = ['R32_%', 'R16_%', 'QF_%', 'SF_%', 'Final_%', 'Win_%'];

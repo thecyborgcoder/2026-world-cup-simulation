@@ -280,6 +280,7 @@ def run_simulations(override_num_sims=None):
             for team, stats in sorted_teams:
                 temp_top10.append({
                     'Team': team,
+                    'Elo': int(ratings.get(team, 1500)),
                     'R32_%': f"{(stats.get('r32', 0)/(i+1))*100:.2f}",
                     'R16_%': f"{(stats.get('r16', 0)/(i+1))*100:.2f}",
                     'QF_%': f"{(stats.get('qf', 0)/(i+1))*100:.2f}",
@@ -327,6 +328,7 @@ def run_simulations_for_ui(num_sims):
     for team, stats in sorted_teams:
         ui_stats.append({
             'Team': team,
+            'Elo': int(ratings.get(team, 1500)),
             'R32_%': f"{(stats.get('r32', 0)/num_sims)*100:.2f}",
             'R16_%': f"{(stats.get('r16', 0)/num_sims)*100:.2f}",
             'QF_%': f"{(stats.get('qf', 0)/num_sims)*100:.2f}",
