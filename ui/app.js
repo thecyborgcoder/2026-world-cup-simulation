@@ -1,5 +1,7 @@
 let currentSortCol = null;
 let currentSortDesc = true;
+let fakeSimCount = 0;
+let fakeSimInterval = null;
 let visibleColumns = {
     'rank': true,
     'team': true,
@@ -119,6 +121,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const progressPercentage = document.getElementById('progress-percentage');
             const progressStatus = document.getElementById('progress-status');
             
+            fakeSimCount = 0;
+            if (fakeSimInterval) clearInterval(fakeSimInterval);
+            fakeSimInterval = setInterval(() => {
+                if (window.isSimulationActive) {
+                    fakeSimCount += Math.floor(Math.random() * 20) + 1; // Add 1-20
+                    const simsEl = document.getElementById('meta-sims');
+                    if (simsEl) simsEl.textContent = fakeSimCount.toLocaleString();
+                } else {
+                    clearInterval(fakeSimInterval);
+                }
+            }, 100);
+            
             if (progressWrapper && !isSmallBatch) {
                 progressWrapper.style.display = 'block';
                 progressBar.style.width = '0%';
@@ -157,6 +171,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         if (data.bracket) {
                             updateBracketDOM(data.bracket);
+                        }
+                        
+                        if (data.meta) {
+                            renderMeta(data.meta);
                         }
                         
                         if (window.isScrambling && data.progress > 0) {
@@ -244,10 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 500);
                 }
                 
-                if (!res.ok) throw new Error('Simulation failed on server.');
+                if (!res.ok) {
+                    if (res.status === 409) return { aborted: true };
+                    throw new Error('Simulation failed on server.');
+                }
                 return res.json();
             })
             .then(resData => {
+                if (resData.aborted) return;
+                
                 window.isSimulationActive = false;
                 window.isTableScrambling = false;
                 if (window.tableScrambleInterval) {
@@ -847,7 +870,7 @@ function renderStatsTable(stats) {
                 
                 if (visibleColumns['Elo']) {
                     const tdElo = document.createElement('td');
-                    tdElo.textContent = '-';
+                    tdElo.textContent = row['Elo'] !== undefined ? row['Elo'] : '-';
                     tr.appendChild(tdElo);
                 }
                 
@@ -984,6 +1007,7 @@ function startScramblingInterval() {
                 let tIdx = 0;
                 if (visibleColumns['rank'] && tds[tIdx]) tIdx++;
                 if (visibleColumns['team'] && tds[tIdx]) tds[tIdx++].textContent = name;
+                if (visibleColumns['Elo'] && tds[tIdx]) tds[tIdx++].textContent = Math.floor(Math.random() * (2100 - 1400) + 1400);
                 if (visibleColumns['R32_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 100).toFixed(2) + '%';
                 if (visibleColumns['R16_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 80).toFixed(2) + '%';
                 if (visibleColumns['QF_%'] && tds[tIdx]) tds[tIdx++].textContent = (Math.random() * 60).toFixed(2) + '%';
@@ -1001,6 +1025,7 @@ function startScramblingInterval() {
                 html += `<tr class="table-row-scrambling">`;
                 if (visibleColumns['rank']) html += `<td class="rank-col">${i + 1}</td>`;
                 if (visibleColumns['team']) html += `<td class="team-col">${name}</td>`;
+                if (visibleColumns['Elo']) html += `<td>${Math.floor(Math.random() * (2100 - 1400) + 1400)}</td>`;
                 if (visibleColumns['R32_%']) html += `<td>${(Math.random() * 100).toFixed(2)}%</td>`;
                 if (visibleColumns['R16_%']) html += `<td>${(Math.random() * 80).toFixed(2)}%</td>`;
                 if (visibleColumns['QF_%']) html += `<td>${(Math.random() * 60).toFixed(2)}%</td>`;
@@ -1101,7 +1126,14 @@ function renderMeta(meta) {
     if (!meta) return;
     
     const simsEl = document.getElementById('meta-sims');
-    if (simsEl) simsEl.textContent = meta.simulations ? meta.simulations.toLocaleString() : '-';
+    if (meta.simulations) {
+        if (meta.simulations > fakeSimCount) {
+            fakeSimCount = meta.simulations;
+        }
+        if (simsEl) simsEl.textContent = fakeSimCount.toLocaleString();
+    } else {
+        if (simsEl && !window.isSimulationActive) simsEl.textContent = '-';
+    }
     
     const timeEl = document.getElementById('meta-time');
     if (timeEl) timeEl.textContent = meta.timestamp || '-';

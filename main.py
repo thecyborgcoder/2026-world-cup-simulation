@@ -13,8 +13,10 @@ _ratings = None
 
 # Progress tracking for the UI
 current_status = "Idle"
-current_progress = 0
+current_bracket = None
 total_sims = 0
+run_counter = 0
+current_meta = None
 current_top10 = []
 current_bracket = None
 
@@ -178,11 +180,14 @@ def run_simulations(override_num_sims=None):
         
     ratings = fetch_elo_ratings(cache_hours=config.get('elo_cache_hours', 24))
     
-    global current_status, current_progress, total_sims, current_top10, current_bracket
+    global current_status, current_progress, total_sims, current_top10, current_bracket, run_counter, current_meta
+    run_counter += 1
+    my_run_id = run_counter
     current_status = "Fetching Data & ELO Ratings..."
     current_progress = 0
     current_top10 = []
     current_bracket = None
+    current_meta = None
     
     num_sims = override_num_sims if override_num_sims is not None else config.get('num_simulations', 1000)
     total_sims = num_sims
@@ -238,7 +243,7 @@ def run_simulations(override_num_sims=None):
     import time
     
     def process_result(i, result):
-        global current_progress, current_status, current_top10, current_bracket
+        global current_progress, current_status, current_top10, current_bracket, current_meta
         for team in result['r32']: tally[team]['r32'] += 1
         for team in result['r16']: tally[team]['r16'] += 1
         for team in result['qf']: tally[team]['qf'] += 1
@@ -289,6 +294,24 @@ def run_simulations(override_num_sims=None):
                     'Win_%': f"{(stats.get('winner', 0)/(i+1))*100:.2f}"
                 })
             current_top10 = temp_top10
+            
+            total_games = global_run_stats['group_games'] + global_run_stats['ko_games']
+            total_goals = global_run_stats['group_goals'] + global_run_stats['ko_goals']
+            avg_goals = (total_goals / total_games) if total_games > 0 else 0
+            
+            ko_games = global_run_stats['ko_games']
+            pen_wins = global_run_stats['pen_wins']
+            penalties_rate = (pen_wins / ko_games) * 100 if ko_games > 0 else 0
+            
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            
+            current_meta = {
+                'timestamp': timestamp,
+                'simulations': i + 1,
+                'avg_goals': avg_goals,
+                'penalties_rate': penalties_rate
+            }
             use_elo_probs = (num_sims < 10)
             current_bracket = generate_ui_bracket(matchups_tally, r32_slot_tally, ratings, use_elo_probs)
         
@@ -302,12 +325,16 @@ def run_simulations(override_num_sims=None):
         current_status = "Simulating..."
         init_worker(teams, matches, ratings)
         for i in range(num_sims):
+            if run_counter != my_run_id:
+                return None, None, None, None, None, None, None
             result = worker_sim(i)
             process_result(i, result)
     else:
         # Spawn pool and execute simulations in parallel
         with multiprocessing.Pool(initializer=init_worker, initargs=(teams, matches, ratings)) as pool:
             for i, result in enumerate(pool.imap_unordered(worker_sim, range(num_sims), chunksize=chunk_size)):
+                if run_counter != my_run_id:
+                    return None, None, None, None, None, None, None
                 process_result(i, result)
                 
     current_status = "Aggregating Results..."
@@ -319,6 +346,9 @@ def main():
 
 def run_simulations_for_ui(num_sims):
     tally, matchups_tally, global_run_stats, num_sims, config, r32_slot_tally, ratings = run_simulations(num_sims)
+    
+    if tally is None:
+        return None, None, None
     
     use_elo_probs = (num_sims < 10) if num_sims else False
     ui_data = generate_ui_bracket(matchups_tally, r32_slot_tally, ratings, use_elo_probs=use_elo_probs)

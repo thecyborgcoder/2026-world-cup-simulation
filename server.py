@@ -21,7 +21,8 @@ class WorldCupHandler(SimpleHTTPRequestHandler):
                 'progress': main.current_progress,
                 'total': main.total_sims,
                 'top10': main.current_top10,
-                'bracket': main.current_bracket
+                'bracket': main.current_bracket,
+                'meta': getattr(main, 'current_meta', None)
             }
             self.wfile.write(json.dumps(progress_data).encode('utf-8'))
         else:
@@ -34,10 +35,17 @@ class WorldCupHandler(SimpleHTTPRequestHandler):
             
             try:
                 payload = json.loads(body)
-                num_sims = int(payload.get('simulations', 1000))
+                num_sims = int(payload.get('simulations', 100000))
                 
                 print(f"Received request to run {num_sims} simulations.")
                 bracket_data, stats_data, meta_data = main.run_simulations_for_ui(num_sims)
+                
+                if bracket_data is None:
+                    self.send_response(409)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Simulation aborted due to a newer request."}).encode('utf-8'))
+                    return
                 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
