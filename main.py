@@ -92,8 +92,8 @@ def generate_ui_bracket(matchups_tally, r32_slot_tally, ratings, use_elo_probs=F
             most_common_pair = max(r32_slot_tally[j].items(), key=lambda x: x[1])[0]
             c.append(most_common_pair)
             
-    left_r32 = [c[1], c[4], c[0], c[2], c[3], c[5], c[6], c[7]]
-    right_r32 = [c[10], c[11], c[8], c[9], c[12], c[14], c[13], c[15]]
+    left_r32 = [c[0], c[2], c[1], c[4], c[8], c[9], c[10], c[11]]
+    right_r32 = [c[3], c[5], c[6], c[7], c[12], c[14], c[13], c[15]]
     
     def process_side(side_r32_matches, side_prefix):
         rounds = {}

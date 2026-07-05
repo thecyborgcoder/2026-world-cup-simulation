@@ -347,8 +347,14 @@ def run_one_simulation(teams, matches_played, ratings):
     # R16 Mapping
     w = {73 + i: winner for i, winner in enumerate(r32_teams)}
     r16_bracket = [
-        (w[74], w[77]), (w[73], w[75]), (w[76], w[78]), (w[79], w[80]),
-        (w[83], w[84]), (w[81], w[82]), (w[85], w[87]), (w[86], w[88])
+        (w[73], w[75]),
+        (w[74], w[77]),
+        (w[76], w[78]),
+        (w[79], w[80]),
+        (w[81], w[82]),
+        (w[83], w[84]),
+        (w[85], w[87]),
+        (w[86], w[88])
     ]
     r16_teams, r16_data = simulate_knockout(r16_bracket, ratings, 89, historical_ko)
     all_matches.extend(r16_data)
@@ -356,8 +362,10 @@ def run_one_simulation(teams, matches_played, ratings):
     # QF Mapping
     w16 = {89 + i: winner for i, winner in enumerate(r16_teams)}
     qf_bracket = [
-        (w16[89], w16[90]), (w16[91], w16[92]), 
-        (w16[93], w16[94]), (w16[95], w16[96])
+        (w16[89], w16[90]), 
+        (w16[93], w16[94]),
+        (w16[91], w16[92]), 
+        (w16[95], w16[96])
     ]
     qf_teams, qf_data = simulate_knockout(qf_bracket, ratings, 97, historical_ko)
     all_matches.extend(qf_data)
@@ -365,7 +373,8 @@ def run_one_simulation(teams, matches_played, ratings):
     # SF Mapping
     wqf = {97 + i: winner for i, winner in enumerate(qf_teams)}
     sf_bracket = [
-        (wqf[97], wqf[98]), (wqf[99], wqf[100])
+        (wqf[97], wqf[98]),
+        (wqf[99], wqf[100])
     ]
     sf_teams, sf_data = simulate_knockout(sf_bracket, ratings, 101, historical_ko)
     all_matches.extend(sf_data)
