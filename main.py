@@ -13,12 +13,12 @@ _ratings = None
 
 # Progress tracking for the UI
 current_status = "Idle"
+current_progress = 0
 current_bracket = None
 total_sims = 0
 run_counter = 0
 current_meta = None
 current_top10 = []
-current_bracket = None
 
 def generate_ui_bracket(matchups_tally, r32_slot_tally, ratings, use_elo_probs=False):
     def get_code(team_name):
